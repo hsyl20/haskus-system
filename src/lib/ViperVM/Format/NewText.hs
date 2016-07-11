@@ -36,9 +36,10 @@ import ViperVM.Format.Binary.Buffer
 import Data.Char
 
 -- | What is a Text? Depending on the use case, the answer is different.
---   * Unicode tries to cover the whole set of existing languages. Comparison
---   requires normalization; reversing the letters is not equivalent to
---   reversing the code points (cf diacritics); some letters support "case"
+--
+--   * Unicode tries to cover the whole set of existing natural languages.
+--   Comparison requires normalization; reversing the letters is not equivalent
+--   to reversing the code points (cf diacritics); some letters support "case"
 --   while others don't; some precomposed characters require special care. 
 --
 --   * ASCII-like character sets only support a few characters. Characters have
@@ -46,6 +47,16 @@ import Data.Char
 --   tables).
 --
 --   * POSIX FilePath can be composed of any byte except \0 and '/'
+--
+--   * Various ASCII subsets can be used too (e.g., in ISO 9660)
+--
+-- Depending on the use, the data structure used to hold the text should be different:
+--    * Comparison
+--    * Indexing
+--    * Concatenation (builder)
+--    * Insertion/deletion (text editor)
+--    * FFI with UTF-16
+--    * Streaming
 --
 -- Existing String/Text types:
 --   * Data.Text: a UTF-16 encoded Unicode in a ByteString
@@ -60,14 +71,6 @@ import Data.Char
 --       - list operations are mostly wrong in the general case:
 --          - reverse: reverse the code points (cf diacritics)
 --          - map toUpper: some characters such as 'ffl' become 3-characters in upper-case ("FFL")
---
--- Depending on the use, the data structure used to hold the text should be different:
---    * Comparison
---    * Indexing
---    * Concatenation (builder)
---    * Insertion/deletion (text editor)
---    * FFI with UTF-16
---    * Streaming
 --
 -- A generic Text type?
 --    We need a taxonomy
