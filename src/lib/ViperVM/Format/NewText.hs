@@ -42,6 +42,21 @@ import Data.Char
 --   to reversing the code points (cf diacritics); some letters support "case"
 --   while others don't; some precomposed characters require special care. 
 --
+--   Unicode is similar to a light LaTeX: there are control characters to force
+--   joining or non-joining; it tries to handle hyphenation generically; it
+--   supports bidirectional text.
+--
+--   Many operations are locale sensitive:
+--    * sorting
+--    * searching: options are locale sensitive too:
+--       * case-sensitivity
+--       * how to consider special characters (accentuated letters, Ç, etc.)
+--       * what is searching with kanji-like glyphs?
+--   
+--   It is both too high-level for common operations (comparison, etc.) that are
+--   easy and efficient with ASCII-like encoding and too low-level for most
+--   other operations requiring complex formatting and locale sensitivity.
+--
 --   * ASCII-like character sets only support a few characters. Characters have
 --   a fixed size and most operations are trivial (e.g., using conversion
 --   tables).
@@ -51,11 +66,10 @@ import Data.Char
 --   * Various ASCII subsets can be used too (e.g., in ISO 9660)
 --
 -- Depending on the use, the data structure used to hold the text should be different:
---    * Comparison
---    * Indexing
+--    * Comparison, search, indexing
 --    * Concatenation (builder)
 --    * Insertion/deletion (text editor)
---    * FFI with UTF-16
+--    * FFI (e.g., with legacy UTF-16 or ASCII libraries)
 --    * Streaming
 --
 -- Existing String/Text types:
@@ -71,6 +85,10 @@ import Data.Char
 --       - list operations are mostly wrong in the general case:
 --          - reverse: reverse the code points (cf diacritics)
 --          - map toUpper: some characters such as 'ffl' become 3-characters in upper-case ("FFL")
+--
+-- Encodings often contain control-characters that are in fact part of a
+-- terminal protocol (e.g., 0x00 to 0x1F in ASCII), used for rendering
+-- algorithms (e.g., Bidirectional and joining in Unicode), etc.
 --
 -- A generic Text type?
 --    We need a taxonomy
