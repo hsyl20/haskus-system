@@ -207,6 +207,7 @@ library
 
     ViperVM.Format.Binary.BitSet
     ViperVM.Format.Binary.BitField
+    ViperVM.Format.Binary.FiniteBuffer
     ViperVM.Format.Binary.Buffer
     ViperVM.Format.Binary.BufferList
     ViperVM.Format.Binary.BufferBuilder

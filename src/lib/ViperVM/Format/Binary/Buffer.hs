@@ -13,7 +13,7 @@ module ViperVM.Format.Binary.Buffer
    , bufferSize
    , isBufferEmpty
    , emptyBuffer
-   , bufferPeek
+   , bufferPeekStorable
    , bufferMap
    , bufferReverse
    , bufferRead
@@ -105,8 +105,8 @@ bufferSize (Buffer bs) =
       s = BS.length bs
 
 -- | Peek a storable
-bufferPeek :: forall a. Storable a => Buffer -> a
-bufferPeek buf
+bufferPeekStorable :: forall a. Storable a => Buffer -> a
+bufferPeekStorable buf
    | bufferSize buf < sza = error "bufferPeek: out of bounds"
    | otherwise            = unsafePerformIO $ withBufferPtr buf peek
    where
