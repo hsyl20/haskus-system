@@ -181,7 +181,8 @@ library
 
     ViperVM.Format.CPIO
     ViperVM.Format.Text
-    ViperVM.Format.NewText
+    ViperVM.Format.Text.Common
+    ViperVM.Format.Text.ASCII
     ViperVM.Format.String
 
     ViperVM.Format.Elf
