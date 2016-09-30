@@ -85,6 +85,7 @@ import Data.Char
 --       - list operations are mostly wrong in the general case:
 --          - reverse: reverse the code points (cf diacritics)
 --          - map toUpper: some characters such as 'ffl' become 3-characters in upper-case ("FFL")
+--                - we should have toUpper :: Char -> [Char] and use concatMap
 --
 -- Encodings often contain control-characters that are in fact part of a
 -- terminal protocol (e.g., 0x00 to 0x1F in ASCII), used for rendering
@@ -146,7 +147,7 @@ type instance MakeStruct Unicode EncUTF8  StructList   = [Word8]
 type instance MakeStruct Unicode EncUTF16 StructList   = [Word16]
 type instance MakeStruct Unicode EncUTF32 StructList   = String -- Just for the test
 type instance MakeStruct Unicode EncUTF8  StructBuffer = Buffer
-type instance MakeStruct Unicode EncUTF16 StructBuffer = Buffer
+type instance MakeStruct Unicode EncUTF16 StructBuffer = Text
 type instance MakeStruct Unicode EncUTF32 StructBuffer = Buffer
 
 ----------------------------------------------------------
@@ -186,12 +187,6 @@ class CaseSwitchable a where
 
    -- | Switch to lower-case
    lowercase :: a -> a
-
-asciiUpper :: Word8 -> Word8
-asciiUpper x = if x >= 97 && x <= 122 then x - 22 else x
-
-asciiLower :: Word8 -> Word8
-asciiLower x = if x >= 65 && x <= 90 then x + 22 else x
 
 instance CaseSwitchable (Text ASCII EncByte StructList) where
    uppercase (Text l) = Text (map asciiUpper l)
