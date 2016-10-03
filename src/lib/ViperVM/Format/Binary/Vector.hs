@@ -56,20 +56,20 @@ type family ElemOffset a n where
    ElemOffset a n = n * (SizeOf a)
 
 instance forall a n s.
-   ( StaticStorable a
+   ( FixedStorable a
    , s ~ ElemOffset a n
    , KnownNat s
    , KnownNat (SizeOf a)
-   ) => StaticStorable (Vector n a) where
+   ) => FixedStorable (Vector n a) where
 
    type SizeOf (Vector n a)    = ElemOffset a n
    type Alignment (Vector n a) = Alignment a
 
-   staticPeek ptr = do
+   fixedPeek ptr = do
       let sz = natVal (Proxy :: Proxy s)
       Vector <$> bufferPackPtr (fromIntegral sz) (castPtr ptr)
 
-   staticPoke ptr (Vector b) = bufferPoke ptr b
+   fixedPoke ptr (Vector b) = bufferPoke ptr b
 
 instance forall a n.
    ( KnownNat n
@@ -197,7 +197,7 @@ instance forall (n :: Nat) v a r s.
    , KnownNat (SizeOf a)
    , s ~ ElemOffset a n
    , KnownNat s
-   , StaticStorable a
+   , FixedStorable a
    , Storable a
    ) => Apply StoreVector (v, IO (Ptr a)) r where
       apply _ (v, getP) = do
@@ -217,7 +217,7 @@ concat :: forall l (n :: Nat) a .
    ( n ~ WholeSize l
    , KnownNat n
    , Storable a
-   , StaticStorable a
+   , FixedStorable a
    , HFoldr StoreVector (IO (Ptr a)) l (IO (Ptr a))
    )
    => HList l -> Vector n a

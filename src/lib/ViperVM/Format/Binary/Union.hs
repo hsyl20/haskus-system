@@ -128,19 +128,19 @@ instance forall fs.
       ( KnownNat (Max (MapSizeOf fs))
       , KnownNat (Max (MapAlignment fs))
       )
-      => StaticStorable (Union fs)
+      => FixedStorable (Union fs)
    where
       type SizeOf (Union fs)    = Max (MapSizeOf fs)
       type Alignment (Union fs) = Max (MapAlignment fs)
 
-      staticPeek ptr = do
+      fixedPeek ptr = do
          let sz = fromIntegral $ natVal (Proxy :: Proxy (SizeOf (Union fs)))
          fp <- mallocForeignPtrBytes sz
          withForeignPtr fp $ \p -> 
             memCopy p (castPtr ptr) (fromIntegral sz)
          return (Union fp)
 
-      staticPoke ptr (Union fp) = do
+      fixedPoke ptr (Union fp) = do
          let sz = natVal (Proxy :: Proxy (SizeOf (Union fs)))
          withForeignPtr fp $ \p ->
             memCopy (castPtr ptr) p (fromIntegral sz)

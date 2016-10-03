@@ -126,12 +126,12 @@ recordField :: forall name a fs o.
    ( o ~ FieldOffset name fs 0
    , a ~ FieldType name fs
    , KnownNat o
-   , StaticStorable a
+   , FixedStorable a
    ) => Proxy (name :: Symbol) -> Record fs -> a
 recordField p r@(Record fp) = unsafePerformIO $
    withForeignPtr fp $ \ptr ->do
       let ptr' = ptr `plusPtr` recordFieldOffset p r
-      staticPeek (castPtr ptr')
+      fixedPeek (castPtr ptr')
 
 data Path (fs :: [*])
 
@@ -149,33 +149,33 @@ recordFieldPath :: forall path a fs o.
    ( o ~ FieldPathOffset fs path 0
    , a ~ FieldPathType fs path
    , KnownNat o
-   , StaticStorable a
+   , FixedStorable a
    ) => Path path -> Record fs -> a
 recordFieldPath _ (Record fp) = unsafePerformIO $
    withForeignPtr fp $ \ptr -> do
       let
          o    = fromIntegral (natVal (Proxy :: Proxy o))
          ptr' = ptr `plusPtr` o
-      staticPeek (castPtr ptr')
+      fixedPeek (castPtr ptr')
 
 
 instance forall fs s.
       ( s ~ FullRecordSize fs
       , KnownNat s
       )
-      => StaticStorable (Record fs)
+      => FixedStorable (Record fs)
    where
       type SizeOf (Record fs)    = FullRecordSize fs
       type Alignment (Record fs) = RecordAlignment fs 1
 
-      staticPeek ptr = do
+      fixedPeek ptr = do
          let sz = recordSize (undefined :: Record fs)
          fp <- mallocForeignPtrBytes (fromIntegral sz)
          withForeignPtr fp $ \p ->
             memCopy p ptr (fromIntegral sz)
          return (Record fp)
 
-      staticPoke ptr (Record fp) = do
+      fixedPoke ptr (Record fp) = do
          let sz = recordSize (undefined :: Record fs)
          withForeignPtr fp $ \p ->
             memCopy ptr p (fromIntegral sz)
@@ -189,7 +189,7 @@ instance forall fs typ name rec b l2 i r.
    , i ~ (rec, HList l2)                    -- input type
    , typ ~ FieldType name fs
    , KnownNat (FieldOffset name fs 0)
-   , StaticStorable typ
+   , FixedStorable typ
    , KnownSymbol name
    , r ~ (rec, HList ((String,typ) ': l2))  -- result type
    ) => Apply Extract (b, i) r where

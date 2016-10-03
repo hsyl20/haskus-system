@@ -23,19 +23,19 @@ newtype Array t = Array Buffer
 instance
    ( Show t
    , Storable t
-   , StaticStorable t
+   , FixedStorable t
    , KnownNat (SizeOf t)
    ) => Show (Array t) where
    show a = "fromList " ++ show (arrayToList a)
 
 -- | Count elements in the array
 arrayCount :: forall t.
-   ( StaticStorable t
+   ( FixedStorable t
    , KnownNat (SizeOf t)
    ) => Array t -> Word
 arrayCount (Array b) = bufferSize b `div` n
    where
-      n = staticSizeOf (undefined :: t)
+      n = fixedSizeOf (undefined :: t)
 
 -- | Create an array from a list of values
 arrayFromList ::
@@ -46,11 +46,11 @@ arrayFromList xs = Array (bufferPackStorableList xs)
 -- | Create a list from an array
 arrayToList :: forall t.
    ( Storable t
-   , StaticStorable t
+   , FixedStorable t
    , KnownNat (SizeOf t)
    ) => Array t -> [t]
 arrayToList a@(Array b) = bufferPeekStorableAt b <$> offs
    where
       offs = fmap (* sz) [0..n-1]
-      sz   = staticSizeOf (undefined :: t)
+      sz   = fixedSizeOf (undefined :: t)
       n    = arrayCount a
