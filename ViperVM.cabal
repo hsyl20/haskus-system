@@ -184,6 +184,7 @@ library
     ViperVM.Format.Text
     ViperVM.Format.Text.Common
     ViperVM.Format.Text.ASCII
+    ViperVM.Format.Text.Unicode
     ViperVM.Format.String
 
     ViperVM.Format.Elf
@@ -215,6 +216,7 @@ library
     ViperVM.Format.Binary.Bits.Get
     ViperVM.Format.Binary.Bits.Put
 
+    ViperVM.Format.Binary.Array
     ViperVM.Format.Binary.BitSet
     ViperVM.Format.Binary.BitField
     ViperVM.Format.Binary.Buffer
