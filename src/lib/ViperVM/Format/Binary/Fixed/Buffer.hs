@@ -51,7 +51,24 @@ import ViperVM.Utils.Memory
 -------------------------------------------------------------------------
 
 -- | A vector of 'n' elements with type 'e'
-data Vector e (n :: Nat)
+newtype Vector e (n :: Nat) = Vector (LayoutPtr (Vector e n))
+
+instance FixedStorable e => Layout (Vector e n) where
+   type FollowPathType (Vector e n) (Path '[]) = Vector e n
+   type FollowPathType (Vector e n) (Path (PathIndex i ': ps))  =
+      If ((i+1) <=? n)
+         (FollowPathType e (Path ps))
+         OutOfBound
+
+   type FollowPathOffset (Vector e n) (Path '[])  = 0
+
+   type FollowPathOffset (Vector e n) (Path (PathIndex i ': ps))  =
+      -- FIXME: use TypeError with Nat kind
+      -- IfNat ((i+1) <=? n)
+         (SizeOf e * i + (FollowPathOffset e (Path ps)))
+      --   OutOfBound
+
+
 
 -- | A slice ('offset' and 'size' expressed in the sliced vector unit 'e')
 data Slice (offset :: Nat) (size :: Nat) v
