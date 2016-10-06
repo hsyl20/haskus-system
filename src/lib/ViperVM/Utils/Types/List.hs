@@ -30,6 +30,7 @@ module ViperVM.Utils.Types.List
    , Indexes
    , MapTest
    , Zip
+   , ZipCheck
    , Filter
    , Nub
    , NubHead
@@ -163,6 +164,11 @@ type family Zip (l :: [*]) (l2 :: [*]) where
    Zip '[] xs              = '[]
    Zip xs '[]              = '[]
    Zip (x ': xs) (y ': ys) = (x,y) ': Zip xs ys
+
+-- | Zip two lists with length checking
+type family ZipCheck (l :: [*]) (l2 :: [*]) where
+   ZipCheck '[] '[]             = '[]
+   ZipCheck (x ': xs) (y ': ys) = (x,y) ': ZipCheck xs ys
 
 -- | Remove `a` in `l`
 type family Filter a (l :: [*]) where
