@@ -57,7 +57,6 @@ import ViperVM.Format.Binary.Ptr
 
 import Foreign.Storable
 import Foreign.CStorable
-import Foreign.ForeignPtr
 import System.IO.Unsafe (unsafePerformIO)
 import Control.Monad (when)
 

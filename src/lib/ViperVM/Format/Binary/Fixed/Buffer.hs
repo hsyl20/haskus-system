@@ -28,24 +28,19 @@ module ViperVM.Format.Binary.Fixed.Buffer
    , Field
    , DynVector (..)
    , DynData (..)
-   , Path (..)
-   , PathIndex
-   , PathSymbol
    , PathDynIndex
    , readData
    , sliceData
-   , readDynData
    )
 where
 
 import ViperVM.Format.Binary.Ptr
 import ViperVM.Format.Binary.Word
 import ViperVM.Format.Binary.Storable
+import ViperVM.Format.Binary.Fixed.LayoutPtr
 import ViperVM.Utils.Types
 import ViperVM.Utils.HList
 import ViperVM.Utils.Memory
-
-import Foreign.ForeignPtr
 
 -------------------------------------------------------------------------
 -- Layouts
@@ -69,9 +64,6 @@ data Field (name :: Symbol) (t :: *)
 
 
 -- | A path to reach an element
-newtype Path (path :: [*]) = Path [Word]  -- Words for DynIndex
-data PathIndex (n :: Nat)
-data PathSymbol (s :: Symbol)
 data PathDynIndex
 
 -- | A data with the given layout
@@ -218,17 +210,17 @@ instance forall e n.
             n  = head layoutSizes
             se = fromIntegral (natVal (Proxy :: Proxy (SizeOf e)))
 
-readDynData :: forall l p e ps.
-   ( FixedStorable (ComputePathType l p)
-   , HFoldr' ReadDyn ([Word],[Word],Data l,Word) ps ([Word],[Word],Data e,Word)
-   , e ~ ComputePathType l p
-   ) => Path p -> DynData l -> IO (ComputePathType l p)
-readDynData (Path ps) (DynData fp szs) = withForeignPtr fp (fixedPeek . castPtr . (`plusPtr` off))
-   where
-      initFold     = (ps,szs,(undefined :: Data l),(0 :: Word))
-      (_,_,_,off') = hFoldr' ReadDyn initFold (undefined :: HList ps) :: ([Word],[Word],Data e, Word)
-      off          = fromIntegral off'
-
+-- readDynData :: forall l p e ps.
+--    ( FixedStorable (ComputePathType l p)
+--    , HFoldr' ReadDyn ([Word],[Word],Data l,Word) ps ([Word],[Word],Data e,Word)
+--    , e ~ ComputePathType l p
+--    ) => Path p -> DynData l -> IO (ComputePathType l p)
+-- readDynData (Path ps) (DynData fp szs) = withForeignPtr fp (fixedPeek . castPtr . (`plusPtr` off))
+--    where
+--       initFold     = (ps,szs,(undefined :: Data l),(0 :: Word))
+--       (_,_,_,off') = hFoldr' ReadDyn initFold (undefined :: HList ps) :: ([Word],[Word],Data e, Word)
+--       off          = fromIntegral off'
+-- 
 -- | Read a Data with a dynamic path (runtime indexes)
 -- readDynData' :: DynPath p -> Data l -> IO (ComputePathType l p)
 --
