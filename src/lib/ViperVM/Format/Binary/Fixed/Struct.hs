@@ -7,6 +7,7 @@
 
 module ViperVM.Format.Binary.Fixed.Struct
    ( StructLayout
+   , StructField
    , StructFieldType
    , StructFieldOffset
    , Struct
@@ -28,7 +29,7 @@ type Struct (fields :: [*]) = LayoutPtr (StructLayout fields)
 
 type instance LayoutPathType (StructLayout fs) (LayoutPath (LayoutSymbol s ': ps)) = LayoutPathType (StructFieldType fs s) (LayoutPath ps)
 
-type instance LayoutPathOffset (StructLayout fs) (LayoutPath (LayoutSymbol s ': ps)) = StructFieldOffset fs s
+type instance LayoutPathOffset (StructLayout fs) (LayoutPath (LayoutSymbol s ': ps)) = StructFieldOffset fs s + LayoutPathOffset (StructFieldType fs s) (LayoutPath ps)
 
 
 type family StructFieldType (fs :: [*]) (s :: Symbol) where
