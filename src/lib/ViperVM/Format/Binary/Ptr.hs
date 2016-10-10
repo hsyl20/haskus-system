@@ -29,6 +29,7 @@ module ViperVM.Format.Binary.Ptr
    , Ptr
    -- * Finalized pointer
    , FinalizedPtr (..)
+   , withFinalizedPtr
    -- * Foreign pointer
    , ForeignPtr
    , FP.withForeignPtr
@@ -59,7 +60,7 @@ import ViperVM.Utils.Types
 --
 -- We use an offset because we can't modify the pointer directly (it is
 -- passed to the foreign pointer destructors)
-data FinalizedPtr l = FinalizedPtr {-# UNPACK #-} !(ForeignPtr ())
+data FinalizedPtr l = FinalizedPtr {-# UNPACK #-} !(ForeignPtr l)
                                    {-# UNPACK #-} !Word  -- offset
 
 type role FinalizedPtr phantom
@@ -69,6 +70,11 @@ nullFinalizedPtr :: FinalizedPtr a
 nullFinalizedPtr = unsafePerformIO $ do
    fp <- FP.newForeignPtr_ nullPtr
    return (FinalizedPtr fp 0)
+
+-- | Use a finalized pointer
+withFinalizedPtr :: FinalizedPtr a -> (Ptr a -> IO b) -> IO b
+withFinalizedPtr (FinalizedPtr fp o) f =
+   FP.withForeignPtr fp (f . (`indexPtr` fromIntegral o))
 
 -- | Pointer operations
 class PtrLike (p :: * -> *) where
