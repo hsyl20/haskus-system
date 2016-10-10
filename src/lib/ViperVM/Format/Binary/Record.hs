@@ -36,6 +36,7 @@ import System.IO.Unsafe
 
 import ViperVM.Format.Binary.Ptr
 import ViperVM.Format.Binary.Storable
+import ViperVM.Format.Binary.Layout
 import ViperVM.Utils.HList
 import ViperVM.Utils.Memory
 import ViperVM.Utils.Types

@@ -53,6 +53,7 @@ import ViperVM.Utils.Types
 import ViperVM.Utils.Types.List hiding (Union)
 import ViperVM.Utils.HList
 import ViperVM.Format.Binary.Storable
+import ViperVM.Format.Binary.Layout
 import ViperVM.Format.Binary.Ptr
 
 import Foreign.Storable

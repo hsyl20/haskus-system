@@ -52,7 +52,7 @@ import Foreign.ForeignPtr (ForeignPtr)
 import Unsafe.Coerce
 import System.IO.Unsafe
 
-import ViperVM.Format.Binary.Fixed.Layout
+import ViperVM.Format.Binary.Layout
 import ViperVM.Utils.Types
 
 

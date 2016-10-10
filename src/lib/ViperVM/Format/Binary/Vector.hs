@@ -37,6 +37,7 @@ import qualified Data.List as List
 import System.IO.Unsafe (unsafePerformIO)
 
 import ViperVM.Utils.HList
+import ViperVM.Format.Binary.Layout
 import ViperVM.Format.Binary.Storable
 import ViperVM.Format.Binary.Ptr
 import ViperVM.Format.Binary.Buffer

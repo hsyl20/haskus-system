@@ -11,6 +11,7 @@ module ViperVM.Format.Binary.Enum
    )
 where
 
+import ViperVM.Format.Binary.Layout
 import ViperVM.Format.Binary.Storable
 import ViperVM.Format.Binary.Ptr
 import Foreign.Storable

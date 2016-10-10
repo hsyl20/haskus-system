@@ -20,7 +20,7 @@
 -- more safety.
 --
 -- We want to support dynamic type check for dynamically bounded vectors.
-module ViperVM.Format.Binary.Fixed.Buffer
+module ViperVM.Format.Binary.Layout.Buffer
    -- ( Data (..)
    -- , Slice
    -- , Record
@@ -36,7 +36,7 @@ where
 import ViperVM.Format.Binary.Ptr
 import ViperVM.Format.Binary.Word
 import ViperVM.Format.Binary.Storable
-import ViperVM.Format.Binary.Fixed.Layout
+import ViperVM.Format.Binary.Layout
 import ViperVM.Utils.Types
 import ViperVM.Utils.HList
 import ViperVM.Utils.Memory

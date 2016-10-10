@@ -13,6 +13,7 @@ where
 
 import ViperVM.Format.Binary.Buffer
 import ViperVM.Format.Binary.Storable
+import ViperVM.Format.Binary.Layout
 import ViperVM.Utils.Types
 
 import Foreign.Storable

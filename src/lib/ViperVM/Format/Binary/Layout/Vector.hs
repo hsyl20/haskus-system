@@ -5,13 +5,13 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 
-module ViperVM.Format.Binary.Fixed.Vector
+module ViperVM.Format.Binary.Layout.Vector
    ( VectorLayout
    , vectorSlice
    )
 where
 
-import ViperVM.Format.Binary.Fixed.Layout
+import ViperVM.Format.Binary.Layout
 import ViperVM.Format.Binary.Ptr
 import ViperVM.Utils.Types
 import ViperVM.Format.Binary.Storable
