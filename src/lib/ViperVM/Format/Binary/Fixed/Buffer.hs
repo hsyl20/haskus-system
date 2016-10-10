@@ -50,16 +50,6 @@ import ViperVM.Utils.Memory
 -------------------------------------------------------------------------
 
 
--- | A slice ('offset' and 'size' expressed in the sliced vector unit 'e')
--- data Slice (offset :: Nat) (size :: Nat) v
--- 
--- -- | Record with named fields
--- data Record (fields :: [*])
--- 
--- -- | Record field
--- data Field (name :: Symbol) (t :: *)
--- 
--- 
 -- -- | A path to reach an element
 -- data PathDynIndex
 -- 
@@ -96,10 +86,6 @@ import ViperVM.Utils.Memory
 --    ComputePathType (Record fs) (PathSymbol s ': ps) = ComputePathType (RecordFieldType fs s) ps
 -- 
 -- 
--- type family RecordFieldType fs (s :: Symbol) where
---    RecordFieldType (Field name t ': fs) name = t
---    RecordFieldType (Field name t ': fs) s    = RecordFieldType fs s
--- 
 -- -- | Compute the offset at a given path for the given layout
 -- type family ComputePathOffset off layout path where
 --    ComputePathOffset off e             '[]                  = off
@@ -120,12 +106,6 @@ import ViperVM.Utils.Memory
 --    ComputePathOffset off (Record fs) (PathSymbol s ': ps) = 
 --       ComputePathOffset (off + RecordFieldOffset s fs 0) (RecordFieldType fs s) ps
 -- 
--- -- | Offset of a record field (with padding taken into account)
--- type family RecordFieldOffset (name :: Symbol) (fs :: [*]) (sz :: Nat) where
---    RecordFieldOffset name (Field name typ ': fs) sz = sz + Padding sz typ
---    RecordFieldOffset name (Field xx typ ': fs) sz =
---       RecordFieldOffset name fs
---          (sz + Padding sz typ + SizeOf typ)
 -- 
 -- instance
 --    ( KnownNat (SizeOf (ComputePathType e '[]) * n)

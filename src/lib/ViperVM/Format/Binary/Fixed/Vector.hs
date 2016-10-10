@@ -8,7 +8,7 @@
 module ViperVM.Format.Binary.Fixed.Vector
    ( VectorLayout
    , Vector
-   , slice
+   , vectorSlice
    )
 where
 
@@ -25,21 +25,22 @@ data VectorLayout (n :: Nat) e
 -- | A vector of 'n' elements with type 'e'
 type Vector (n :: Nat) e = LayoutPtr (VectorLayout n e)
 
-type instance FollowPathType (VectorLayout n e) (Path (PathIndex i ': ps))  =
+type instance LayoutPathType (VectorLayout n e) (LayoutPath (LayoutIndex i ': ps))  =
    If ((i+1) <=? n)
-      (FollowPathType e (Path ps))
+      (LayoutPathType e (LayoutPath ps))
       OutOfBound
 
-type instance FollowPathOffset (VectorLayout n e) (Path (PathIndex i ': ps))  =
-   -- FIXME: use TypeError with Nat kind
+type instance LayoutPathOffset (VectorLayout n e) (LayoutPath (LayoutIndex i ': ps))  =
+   -- FIXME: (GHC8) use TypeError with Nat kind
    -- IfNat ((i+1) <=? n)
-      (SizeOf e * i + (FollowPathOffset e (Path ps)))
+      (SizeOf e * i + (LayoutPathOffset e (LayoutPath ps)))
    --   OutOfBound
 
 
 -- | Slice a vector
-slice :: forall n e i m.
+vectorSlice :: forall n e i m.
    ( CmpNat (i + m) (n + 1) ~ 'LT -- check that subrange is valid
    , KnownNat (SizeOf e * i)
    ) => Vector n e -> Proxy i -> Proxy m -> Vector m e
-slice v _ _ = castLayoutPtr (follow v (undefined :: Path '[PathIndex i]))
+{-# INLINE vectorSlice #-}
+vectorSlice v _ _ = castLayoutPtr (layoutField v (LayoutPath :: LayoutPath '[LayoutIndex i]))

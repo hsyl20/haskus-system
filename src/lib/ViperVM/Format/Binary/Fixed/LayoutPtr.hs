@@ -8,16 +8,18 @@
 -- | Pointer with memory layout
 module ViperVM.Format.Binary.Fixed.LayoutPtr
    ( LayoutPtr (..)
-   , FollowPathType
-   , FollowPathOffset
+   , LayoutPathType
+   , LayoutPathOffset
    , castLayoutPtr
-   , Root
-   , Path
-   , PathIndex
-   , PathSymbol
+   , LayoutRoot
+   , LayoutPath (..)
+   , LayoutIndex (..)
+   , LayoutSymbol (..)
+   , layoutIndex
+   , layoutSymbol
    , (:->)
    , (:#>)
-   , follow
+   , layoutField
    , (-->)
    , (-#>)
    )
@@ -35,56 +37,71 @@ import ViperVM.Utils.HList
 data LayoutPtr l = LayoutPtr {-# UNPACK #-} !(ForeignPtr Word8)
                              {-# UNPACK #-} !Word  -- offset
 
-data Path (path :: [*])
-data PathIndex (n :: Nat)
-data PathSymbol (s :: Symbol)
+-- | Path in a layout
+data LayoutPath (path :: [*])   = LayoutPath
+
+-- | Index in a layout path
+data LayoutIndex (n :: Nat)     = LayoutIndex
+
+-- | Symbol in a layout path
+data LayoutSymbol (s :: Symbol) = LayoutSymbol
+
+-- | Index in the layout path
+layoutIndex :: forall n. LayoutPath '[LayoutIndex n]
+layoutIndex = LayoutPath
+
+-- | Symbol in the layout path
+layoutSymbol :: forall s. LayoutPath '[LayoutSymbol s]
+layoutSymbol = LayoutPath
+
 
 -- | Type obtained when following path p
-type family FollowPathType l p :: *
+type family LayoutPathType l p :: *
 
 -- | Offset obtained when following path p
-type family FollowPathOffset l p :: Nat
-type instance FollowPathOffset e (Path '[])  = 0
+type family LayoutPathOffset l p :: Nat
+type instance LayoutPathOffset e (LayoutPath '[])  = 0
 
-type Root = Path '[]
+type LayoutRoot = LayoutPath '[]
 
 type family (:->) p (s :: Symbol) where
-   (:->) (Path xs) s = Path (Snoc xs (PathSymbol s))
+   (:->) (LayoutPath xs) s = LayoutPath (Snoc xs (LayoutSymbol s))
 
 type family (:#>) p (n :: Nat) where
-   (:#>) (Path xs) n = Path (Snoc xs (PathIndex n))
+   (:#>) (LayoutPath xs) n = LayoutPath (Snoc xs (LayoutIndex n))
 
+-- | Cast a layout pointer
 castLayoutPtr :: LayoutPtr l -> LayoutPtr l'
 {-# INLINE castLayoutPtr #-}
 castLayoutPtr (LayoutPtr fp off) = LayoutPtr fp off
 
--- | Follow a pointer
-follow :: forall p l.
-   ( KnownNat (FollowPathOffset l p)
-   ) => LayoutPtr l -> p -> LayoutPtr (FollowPathType l p)
-{-# INLINE follow #-}
-follow (LayoutPtr fp off) _ = LayoutPtr fp off'
+-- | Layout a pointer
+layoutField :: forall p l.
+   ( KnownNat (LayoutPathOffset l p)
+   ) => LayoutPtr l -> p -> LayoutPtr (LayoutPathType l p)
+{-# INLINE layoutField #-}
+layoutField (LayoutPtr fp off) _ = LayoutPtr fp off'
    where
-      off' = off + fromIntegral (natVal (Proxy :: Proxy (FollowPathOffset l p)))
+      off' = off + fromIntegral (natVal (Proxy :: Proxy (LayoutPathOffset l p)))
 
 -- {-# RULES
 --  "LayoutPtr concat paths" forall l p1 p2 .
---       follow (follow l p1) p2 = follow l (concatPaths p1 p2)
+--       layoutField (layoutField l p1) p2 = LayoutField l (concatPaths p1 p2)
 --  #-}
--- concatPaths :: Path p1 -> Path p2 -> Path (Concat p1 p2)
+-- concatLayoutPaths :: LayoutPath p1 -> LayoutPath p2 -> LayoutPath (Concat p1 p2)
 -- concatPaths = undefined
 
 
--- | Follow a symbol
+-- | Layout a symbol
 (-->) :: forall s l.
-   ( KnownNat (FollowPathOffset l (Path '[PathSymbol s]))
-   ) => LayoutPtr l -> PathSymbol s -> LayoutPtr (FollowPathType l (Path '[PathSymbol s]))
+   ( KnownNat (LayoutPathOffset l (LayoutPath '[LayoutSymbol s]))
+   ) => LayoutPtr l -> LayoutSymbol s -> LayoutPtr (LayoutPathType l (LayoutPath '[LayoutSymbol s]))
 {-# INLINE (-->) #-}
-(-->) l _ = follow l (undefined :: Path '[PathSymbol s])
+(-->) l _ = layoutField l (layoutSymbol :: LayoutPath '[LayoutSymbol s])
 
--- | Follow an index
+-- | Layout an index
 (-#>) :: forall n l.
-   ( KnownNat (FollowPathOffset l (Path '[PathIndex n]))
-   ) => LayoutPtr l -> PathIndex n -> LayoutPtr (FollowPathType l (Path '[PathIndex n]))
+   ( KnownNat (LayoutPathOffset l (LayoutPath '[LayoutIndex n]))
+   ) => LayoutPtr l -> LayoutIndex n -> LayoutPtr (LayoutPathType l (LayoutPath '[LayoutIndex n]))
 {-# INLINE (-#>) #-}
-(-#>) l _ = follow l (undefined :: Path '[PathIndex n])
+(-#>) l _ = layoutField l (layoutIndex :: LayoutPath '[LayoutIndex n])
