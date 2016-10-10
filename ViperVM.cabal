@@ -238,6 +238,7 @@ library
 
     ViperVM.Format.Binary.Fixed.Buffer
     ViperVM.Format.Binary.Fixed.LayoutPtr
+    ViperVM.Format.Binary.Fixed.Vector
 
     ViperVM.Format.FileSystem.ISO9660
 
