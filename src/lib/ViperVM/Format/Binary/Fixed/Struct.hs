@@ -5,16 +5,16 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 
+-- | Structure (named fields with padding for alignment)
 module ViperVM.Format.Binary.Fixed.Struct
    ( StructLayout
    , StructField
    , StructFieldType
    , StructFieldOffset
-   , Struct
    )
 where
 
-import ViperVM.Format.Binary.Fixed.LayoutPtr
+import ViperVM.Format.Binary.Fixed.Layout
 import ViperVM.Utils.Types
 import ViperVM.Format.Binary.Storable
 
@@ -23,9 +23,6 @@ data StructLayout (fields :: [*])
 
 -- | Struct field
 data StructField (name :: Symbol) (t :: *)
-
--- | A struct
-type Struct (fields :: [*]) = LayoutPtr (StructLayout fields)
 
 type instance LayoutPathType (StructLayout fs) (LayoutPath (LayoutSymbol s ': ps)) = LayoutPathType (StructFieldType fs s) (LayoutPath ps)
 

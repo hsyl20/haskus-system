@@ -130,7 +130,7 @@ recordField :: forall name a fs o.
    ) => Proxy (name :: Symbol) -> Record fs -> a
 recordField p r@(Record fp) = unsafePerformIO $
    withForeignPtr fp $ \ptr ->do
-      let ptr' = ptr `plusPtr` recordFieldOffset p r
+      let ptr' = ptr `indexPtr` recordFieldOffset p r
       fixedPeek (castPtr ptr')
 
 data Path (fs :: [*])
@@ -155,8 +155,13 @@ recordFieldPath _ (Record fp) = unsafePerformIO $
    withForeignPtr fp $ \ptr -> do
       let
          o    = fromIntegral (natVal (Proxy :: Proxy o))
-         ptr' = ptr `plusPtr` o
+         ptr' = ptr `indexPtr` o
       fixedPeek (castPtr ptr')
+
+
+instance MemoryLayout (Record fs) where
+   type SizeOf (Record fs)    = FullRecordSize fs
+   type Alignment (Record fs) = RecordAlignment fs 1
 
 
 instance forall fs s.
@@ -165,9 +170,6 @@ instance forall fs s.
       )
       => FixedStorable (Record fs)
    where
-      type SizeOf (Record fs)    = FullRecordSize fs
-      type Alignment (Record fs) = RecordAlignment fs 1
-
       fixedPeek ptr = do
          let sz = recordSize (undefined :: Record fs)
          fp <- mallocForeignPtrBytes (fromIntegral sz)

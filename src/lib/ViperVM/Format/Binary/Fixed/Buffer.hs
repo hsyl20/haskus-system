@@ -36,7 +36,7 @@ where
 import ViperVM.Format.Binary.Ptr
 import ViperVM.Format.Binary.Word
 import ViperVM.Format.Binary.Storable
-import ViperVM.Format.Binary.Fixed.LayoutPtr
+import ViperVM.Format.Binary.Fixed.Layout
 import ViperVM.Utils.Types
 import ViperVM.Utils.HList
 import ViperVM.Utils.Memory
@@ -128,7 +128,7 @@ import ViperVM.Utils.Memory
 --    ( FixedStorable (ComputePathType l p)
 --    , KnownNat (ComputePathOffset 0 l p)
 --    ) => Path p -> Data l -> IO (ComputePathType l p)
--- readData _ (Data fp) = withForeignPtr fp (fixedPeek . castPtr . (`plusPtr` off))
+-- readData _ (Data fp) = withForeignPtr fp (fixedPeek . castPtr . (`indexPtr` off))
 --    where
 --       off = fromIntegral (natVal (Proxy :: Proxy (ComputePathOffset 0 l p)))
 -- 
@@ -184,7 +184,7 @@ import ViperVM.Utils.Memory
 --    , HFoldr' ReadDyn ([Word],[Word],Data l,Word) ps ([Word],[Word],Data e,Word)
 --    , e ~ ComputePathType l p
 --    ) => Path p -> DynData l -> IO (ComputePathType l p)
--- readDynData (Path ps) (DynData fp szs) = withForeignPtr fp (fixedPeek . castPtr . (`plusPtr` off))
+-- readDynData (Path ps) (DynData fp szs) = withForeignPtr fp (fixedPeek . castPtr . (`indexPtr` off))
 --    where
 --       initFold     = (ps,szs,(undefined :: Data l),(0 :: Word))
 --       (_,_,_,off') = hFoldr' ReadDyn initFold (undefined :: HList ps) :: ([Word],[Word],Data e, Word)

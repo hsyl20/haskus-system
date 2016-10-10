@@ -55,15 +55,17 @@ vectorBuffer (Vector b) = b
 type family ElemOffset a n where
    ElemOffset a n = n * (SizeOf a)
 
+instance MemoryLayout (Vector n a) where
+   type SizeOf (Vector n a)    = ElemOffset a n
+   type Alignment (Vector n a) = Alignment a
+
+
 instance forall a n s.
    ( FixedStorable a
    , s ~ ElemOffset a n
    , KnownNat s
    , KnownNat (SizeOf a)
    ) => FixedStorable (Vector n a) where
-
-   type SizeOf (Vector n a)    = ElemOffset a n
-   type Alignment (Vector n a) = Alignment a
 
    fixedPeek ptr = do
       let sz = natVal (Proxy :: Proxy s)
@@ -204,7 +206,7 @@ instance forall (n :: Nat) v a r s.
          p <- getP
          let
             vsz = fromIntegral (natVal (Proxy :: Proxy n))
-            p'  = p `plusPtr` (-1 * vsz * sizeOf (undefined :: a))
+            p'  = p `indexPtr` (-1 * vsz * sizeOf (undefined :: a))
          poke (castPtr p') v 
          return p'
 
@@ -224,5 +226,5 @@ concat :: forall l (n :: Nat) a .
 concat vs = unsafePerformIO $ do
    let sz = sizeOf (undefined :: a) * fromIntegral (natVal (Proxy :: Proxy n))
    p <- mallocBytes sz :: IO (Ptr ())
-   _ <- hFoldr StoreVector (return (p `plusPtr` sz) :: IO (Ptr a)) vs :: IO (Ptr a)
+   _ <- hFoldr StoreVector (return (castPtr p `indexPtr` sz) :: IO (Ptr a)) vs :: IO (Ptr a)
    Vector <$> bufferUnsafePackPtr (fromIntegral sz) p

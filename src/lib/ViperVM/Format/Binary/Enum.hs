@@ -45,14 +45,16 @@ instance
       cAlignment = alignment
       cSizeOf    = sizeOf
 
+instance MemoryLayout (EnumField b a) where
+   type SizeOf (EnumField b a)    = SizeOf b
+   type Alignment (EnumField b a) = Alignment b
+
 instance
       ( Integral b
       , FixedStorable b
       , CEnum a
       ) => FixedStorable (EnumField b a)
    where
-      type SizeOf (EnumField b a)    = SizeOf b
-      type Alignment (EnumField b a) = Alignment b
       fixedPeek p                   = (EnumField . toCEnum) <$> fixedPeek (castPtr p :: Ptr b)
       fixedPoke p (EnumField v)     = fixedPoke (castPtr p :: Ptr b) (fromCEnum v)
 

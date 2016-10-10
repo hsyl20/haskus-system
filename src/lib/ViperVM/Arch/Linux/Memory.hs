@@ -27,7 +27,7 @@ import Data.Proxy
 import Foreign.Marshal.Array (allocaArray, peekArray)
 import Data.Maybe (fromMaybe)
 
-import ViperVM.Format.Binary.Ptr (Ptr, nullPtr, intPtrToPtr)
+import ViperVM.Format.Binary.Ptr (Ptr, nullPtr, wordPtrToPtr)
 import ViperVM.Format.Binary.BitSet as BitSet
 import ViperVM.Format.Binary.BitField
 import ViperVM.Format.Binary.Word
@@ -158,7 +158,7 @@ sysMemMap addr len prot flags hugepagesize source = do
       prot'    = BitSet.toBits prot
       addr'    = fromMaybe nullPtr addr
    
-   onSuccess (syscall_mmap addr' len prot' fld' fd off) (intPtrToPtr . fromIntegral)
+   onSuccess (syscall_mmap addr' len prot' fld' fd off) (wordPtrToPtr . fromIntegral)
 
 -- | Unmap memory
 sysMemUnmap :: Ptr () -> Word64 -> SysRet ()

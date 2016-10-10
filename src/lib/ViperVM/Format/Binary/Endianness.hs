@@ -190,10 +190,12 @@ newtype AsLittleEndian a = AsLittleEndian a deriving (Eq,Ord,Enum,Num,Integral,R
 instance Show a => Show (AsLittleEndian a) where
    show (AsLittleEndian a) = show a
 
-instance (ByteReversable a, FixedStorable a) => FixedStorable (AsBigEndian a) where
+instance MemoryLayout (AsBigEndian a) where
    type SizeOf (AsBigEndian a)    = SizeOf a
    type Alignment (AsBigEndian a) = Alignment a
 
+
+instance (ByteReversable a, FixedStorable a) => FixedStorable (AsBigEndian a) where
    fixedPeek ptr                 = AsBigEndian . bigEndianToHost <$> fixedPeek (castPtr ptr)
    fixedPoke ptr (AsBigEndian v) = fixedPoke (castPtr ptr) (hostToBigEndian v)
 
@@ -211,12 +213,12 @@ instance (ByteReversable a, Storable a) => CStorable (AsBigEndian a) where
    cSizeOf    = sizeOf
    cAlignment = alignment
 
-
-   
-instance (ByteReversable a, FixedStorable a) => FixedStorable (AsLittleEndian a) where
+instance MemoryLayout (AsLittleEndian a) where
    type SizeOf (AsLittleEndian a)    = SizeOf a
    type Alignment (AsLittleEndian a) = Alignment a
 
+   
+instance (ByteReversable a, FixedStorable a) => FixedStorable (AsLittleEndian a) where
    fixedPeek ptr                    = AsLittleEndian . bigEndianToHost <$> fixedPeek (castPtr ptr)
    fixedPoke ptr (AsLittleEndian v) = fixedPoke (castPtr ptr) (hostToLittleEndian v)
 

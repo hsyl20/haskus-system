@@ -5,23 +5,20 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 
+-- | Packed Structure (named fields without padding for alignment)
 module ViperVM.Format.Binary.Fixed.PackedStruct
    ( PackedStructLayout
    , StructField
-   , PackedStruct
    )
 where
 
-import ViperVM.Format.Binary.Fixed.LayoutPtr
+import ViperVM.Format.Binary.Fixed.Layout
 import ViperVM.Format.Binary.Fixed.Struct
 import ViperVM.Utils.Types
 import ViperVM.Format.Binary.Storable
 
 -- | Packed struct with named fields
 data PackedStructLayout (fields :: [*])
-
--- | A packed struct
-type PackedStruct (fields :: [*]) = LayoutPtr (PackedStructLayout fields)
 
 type instance LayoutPathType (PackedStructLayout fs) (LayoutPath (LayoutSymbol s ': ps)) = LayoutPathType (StructFieldType fs s) (LayoutPath ps)
 

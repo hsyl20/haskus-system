@@ -98,7 +98,7 @@ toUnion' zero v = unsafePerformIO $ do
       -- set bytes after the object to 0
       when zero $ do
          let psz = sizeOf (undefined :: a)
-         memSet (p `plusPtr` psz) (fromIntegral (sz - psz)) 0
+         memSet (p `indexPtr` psz) (fromIntegral (sz - psz)) 0
       poke (castPtr p) v
    return $ Union fp
 
@@ -123,15 +123,17 @@ type family MapAlignment fs where
    MapAlignment (x ': xs) = Alignment x ': MapAlignment xs
 
 
+instance MemoryLayout (Union fs) where
+   type SizeOf (Union fs)    = Max (MapSizeOf fs)
+   type Alignment (Union fs) = Max (MapAlignment fs)
+
+
 instance forall fs.
       ( KnownNat (Max (MapSizeOf fs))
       , KnownNat (Max (MapAlignment fs))
       )
       => FixedStorable (Union fs)
    where
-      type SizeOf (Union fs)    = Max (MapSizeOf fs)
-      type Alignment (Union fs) = Max (MapAlignment fs)
-
       fixedPeek ptr = do
          let sz = fromIntegral $ natVal (Proxy :: Proxy (SizeOf (Union fs)))
          fp <- mallocForeignPtrBytes sz
