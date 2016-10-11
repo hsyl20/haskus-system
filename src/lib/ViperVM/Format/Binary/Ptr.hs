@@ -65,14 +65,20 @@ data FinalizedPtr l = FinalizedPtr {-# UNPACK #-} !(ForeignPtr l)
 
 type role FinalizedPtr phantom
 
+instance Show (FinalizedPtr l) where
+   show (FinalizedPtr fp o) = show (FP.unsafeForeignPtrToPtr fp 
+                                    `indexPtr` fromIntegral o)
+
 -- | Null finalized pointer
 nullFinalizedPtr :: FinalizedPtr a
+{-# NOINLINE nullFinalizedPtr #-}
 nullFinalizedPtr = unsafePerformIO $ do
    fp <- FP.newForeignPtr_ nullPtr
    return (FinalizedPtr fp 0)
 
 -- | Use a finalized pointer
 withFinalizedPtr :: FinalizedPtr a -> (Ptr a -> IO b) -> IO b
+{-# INLINE withFinalizedPtr #-}
 withFinalizedPtr (FinalizedPtr fp o) f =
    FP.withForeignPtr fp (f . (`indexPtr` fromIntegral o))
 
@@ -91,6 +97,9 @@ class PtrLike (p :: * -> *) where
 
    -- | Distance between two pointers in bytes (p2 - p1)
    ptrDistance :: p a -> p b -> Int
+
+   -- | Use the pointer
+   withPtr :: p a -> (Ptr a -> IO b) -> IO b
 
    -- | Add offset to the given layout field
    indexField :: forall path l.
@@ -135,6 +144,9 @@ instance PtrLike Ptr where
    {-# INLINE ptrDistance #-}
    ptrDistance = Ptr.minusPtr
 
+   {-# INLINE withPtr #-}
+   withPtr p f = f p
+
 
 instance PtrLike FinalizedPtr where
    {-# INLINE nullPtr #-}
@@ -152,3 +164,6 @@ instance PtrLike FinalizedPtr where
       where
          d = ptrDistance (FP.unsafeForeignPtrToPtr fp1)
                          (FP.unsafeForeignPtrToPtr fp2)
+
+   {-# INLINE withPtr #-}
+   withPtr = withFinalizedPtr

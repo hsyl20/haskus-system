@@ -14,7 +14,6 @@ where
 import ViperVM.Format.Binary.Layout
 import ViperVM.Format.Binary.Ptr
 import ViperVM.Utils.Types
-import ViperVM.Format.Binary.Storable
 
 -- | TODO: (GHC8) replace with TypeError
 data OutOfBound
@@ -32,6 +31,10 @@ type instance LayoutPathOffset (VectorLayout n e) (LayoutPath (LayoutIndex i ': 
    -- IfNat ((i+1) <=? n)
       (SizeOf e * i + (LayoutPathOffset e (LayoutPath ps)))
    --   OutOfBound
+
+instance MemoryLayout (VectorLayout n e) where
+   type SizeOf    (VectorLayout n e) = n * SizeOf e
+   type Alignment (VectorLayout n e) = Alignment e
 
 
 -- | Slice a vector

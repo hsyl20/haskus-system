@@ -15,14 +15,12 @@ module ViperVM.Format.Binary.Storable
    )
 where
 
-import GHC.TypeLits
-import Data.Proxy
 import qualified Foreign.Storable as FS
 
 import ViperVM.Format.Binary.Layout
 import ViperVM.Format.Binary.Word
 import ViperVM.Format.Binary.Ptr
-import ViperVM.Utils.Types (Modulo)
+import ViperVM.Utils.Types
 
 -- | Data that can be converted into a Haskell data-type from a pointer
 class MemoryLayout a => FixedStorable a where
