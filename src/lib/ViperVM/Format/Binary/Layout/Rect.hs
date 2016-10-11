@@ -17,8 +17,8 @@ import ViperVM.Utils.Types
 
 
 -- | A rectangle
--- `w`: width in bytes
--- `h`: height in bytes
+-- `w`: width in elements
+-- `h`: height (number of rows)
 -- `p`: padding between each row in bytes
 data RectLayout (w :: Nat) (h :: Nat) (p :: Nat) e
 
@@ -31,9 +31,9 @@ type instance LayoutPathType (RectLayout w h p e) (LayoutPath (LayoutIndex i ': 
 type instance LayoutPathOffset (RectLayout w h p e) (LayoutPath (LayoutIndex i ': ps))  =
    -- FIXME: (GHC8) use TypeError with Nat kind
    -- IfNat ((i+1) <=? n)
-      (SizeOf e * (w + p) * i + (LayoutPathOffset (VectorLayout w e) (LayoutPath ps)))
+      ((SizeOf e * w + p) * i + (LayoutPathOffset (VectorLayout w e) (LayoutPath ps)))
    --   OutOfBound
 
 instance MemoryLayout (RectLayout w h p e) where
-   type SizeOf    (RectLayout w h p e) = h * (w+p) * SizeOf e
+   type SizeOf    (RectLayout w h p e) = h * (p + w * SizeOf e)
    type Alignment (RectLayout w h p e) = Alignment e
