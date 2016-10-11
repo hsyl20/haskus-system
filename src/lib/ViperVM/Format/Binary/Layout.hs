@@ -25,6 +25,7 @@ module ViperVM.Format.Binary.Layout
 where
 
 import ViperVM.Utils.Types
+import ViperVM.Utils.Types.List
 import ViperVM.Utils.HList
 import ViperVM.Format.Binary.Word
 

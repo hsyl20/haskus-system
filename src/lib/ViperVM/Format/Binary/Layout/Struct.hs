@@ -12,8 +12,8 @@ module ViperVM.Format.Binary.Layout.Struct
 where
 
 import ViperVM.Format.Binary.Layout
-import ViperVM.Format.Binary.Layout.NamedField
 import ViperVM.Utils.Types
+import ViperVM.Utils.Types.Generics
 import ViperVM.Format.Binary.Storable
 
 -- | Struct with named fields

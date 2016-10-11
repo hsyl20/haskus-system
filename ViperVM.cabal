@@ -171,6 +171,7 @@ library
     ViperVM.Utils.Memory
     ViperVM.Utils.Types
     ViperVM.Utils.Types.List
+    ViperVM.Utils.Types.Generics
     ViperVM.Utils.STM.TEq
     ViperVM.Utils.STM.TMap
     ViperVM.Utils.STM.TSet
@@ -242,7 +243,6 @@ library
     ViperVM.Format.Binary.Layout.Struct
     ViperVM.Format.Binary.Layout.PackedStruct
     ViperVM.Format.Binary.Layout.Union
-    ViperVM.Format.Binary.Layout.NamedField
     ViperVM.Format.Binary.Layout.Rect
 
     ViperVM.Format.FileSystem.ISO9660
@@ -322,7 +322,7 @@ library
       ,  file-embed                >= 0.0.10
 
   build-tools: 
-  ghc-options:          -Wall -threaded -O3
+  ghc-options:          -Wall
   default-language:     Haskell2010
   hs-source-dirs:       src/lib
 
@@ -330,7 +330,7 @@ test-suite tests
    type:                detailed-0.9
    test-module:         ViperVM.Tests
    hs-source-dirs:      src/tests
-   ghc-options:         -Wall -threaded -O3
+   ghc-options:         -Wall -threaded
    default-language:     Haskell2010
    other-modules:
          ViperVM.Tests.Common

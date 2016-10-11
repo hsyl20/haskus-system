@@ -12,8 +12,8 @@ module ViperVM.Format.Binary.Layout.PackedStruct
 where
 
 import ViperVM.Format.Binary.Layout
-import ViperVM.Format.Binary.Layout.NamedField
 import ViperVM.Utils.Types
+import ViperVM.Utils.Types.Generics
 
 -- | Packed struct with named fields
 data PackedStructLayout (fields :: [*])

@@ -12,8 +12,8 @@ module ViperVM.Format.Binary.Layout.Union
 where
 
 import ViperVM.Format.Binary.Layout
-import ViperVM.Format.Binary.Layout.NamedField
-import ViperVM.Utils.HList
+import ViperVM.Utils.Types.Generics
+import ViperVM.Utils.Types.List
 
 -- | Union of layouts
 data UnionLayout (layouts :: [*])
