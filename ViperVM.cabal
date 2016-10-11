@@ -243,6 +243,7 @@ library
     ViperVM.Format.Binary.Layout.PackedStruct
     ViperVM.Format.Binary.Layout.Union
     ViperVM.Format.Binary.Layout.NamedField
+    ViperVM.Format.Binary.Layout.Rect
 
     ViperVM.Format.FileSystem.ISO9660
 

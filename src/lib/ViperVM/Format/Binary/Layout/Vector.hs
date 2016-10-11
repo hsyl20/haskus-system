@@ -5,9 +5,11 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 
+-- | Vector
 module ViperVM.Format.Binary.Layout.Vector
    ( VectorLayout
    , vectorSlice
+   , OutOfBound
    )
 where
 
