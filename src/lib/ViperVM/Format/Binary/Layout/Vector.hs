@@ -18,7 +18,6 @@ module ViperVM.Format.Binary.Layout.Vector
    , vectorPokeFilledList
    , vectorPokeFilledListZ
    , vectorFill
-   , OutOfBound
    )
 where
 
@@ -28,17 +27,13 @@ import ViperVM.Format.Binary.Storable
 import ViperVM.Utils.Types
 import qualified ViperVM.Utils.List as List
 
-
--- | TODO: (GHC8) replace with TypeError
-data OutOfBound
-
 -- | A vector layout of 'n' elements with type 'e'
 data VectorLayout (n :: Nat) e
 
 type instance LayoutPathType (VectorLayout n e) (LayoutPath (LayoutIndex i ': ps))  =
    If ((i+1) <=? n)
       (LayoutPathType e (LayoutPath ps))
-      OutOfBound
+      (TypeError (Text "Vector index out of bound: " :<>: ShowType i))
 
 type instance LayoutPathOffset (VectorLayout n e) (LayoutPath (LayoutIndex i ': ps))  =
    -- FIXME: (GHC8) use TypeError with Nat kind

@@ -26,7 +26,7 @@ data RectLayout (w :: Nat) (h :: Nat) (p :: Nat) e
 type instance LayoutPathType (RectLayout w h p e) (LayoutPath (LayoutIndex i ': ps))  =
    If ((i+1) <=? h)
       (LayoutPathType (VectorLayout w e) (LayoutPath ps))
-      OutOfBound
+      (TypeError (Text "Rect index out of bound: " :<>: ShowType i))
 
 type instance LayoutPathOffset (RectLayout w h p e) (LayoutPath (LayoutIndex i ': ps))  =
    -- FIXME: (GHC8) use TypeError with Nat kind
