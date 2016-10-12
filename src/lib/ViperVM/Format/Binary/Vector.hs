@@ -43,6 +43,15 @@ instance
    show v = "fromList " ++ show (toList v)
 
 instance
+   ( KnownNat (n * SizeOf e)
+   ) => Storable (VectorLayout n e) (Vector n e)
+   where
+   type SizeOf    (VectorLayout n e) = n * SizeOf e
+   type Alignment (VectorLayout n e) = Alignment e
+   peekPtr p              = Vector <$> mallocDup (castPtr p)
+   pokePtr p2 (Vector p1) = castPtr p1 `copy` p2
+
+instance
       ( KnownNat (n * SizeOf e)
       ) => Storable (Vector n e) (Vector n e)
    where

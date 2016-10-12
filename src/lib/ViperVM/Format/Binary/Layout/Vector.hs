@@ -41,10 +41,6 @@ type instance LayoutPathOffset (VectorLayout n e) (LayoutPath (LayoutIndex i ': 
       (SizeOf e * i + (LayoutPathOffset e (LayoutPath ps)))
    --   OutOfBound
 
--- instance MemoryLayout (VectorLayout n e) where
---    type SizeOf    (VectorLayout n e) = n * SizeOf e
---    type Alignment (VectorLayout n e) = Alignment e
-
 -- | Offset of the i-th element in a stored vector
 type family ElemOffset a n where
    ElemOffset a n = n * (SizeOf a)
