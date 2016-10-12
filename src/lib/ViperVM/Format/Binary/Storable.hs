@@ -276,20 +276,21 @@ instance FixedStorable Int64 Int64 where
    fixedPoke = FS.poke
 
 -- | Explicit layout
-newtype WithLayout r e = WithLayout e deriving (Show,Eq,Ord)
+newtype WithLayout (r :: * -> *) e = WithLayout e deriving (Show,Eq,Ord)
 
 type instance LayoutPathType (WithLayout r e) (LayoutPath (p ': ps))
-   = LayoutPathType r (LayoutPath (p ': ps))
+   = LayoutPathType (r e) (LayoutPath (p ': ps))
 
 type instance LayoutPathOffset (WithLayout r e) (LayoutPath (p ': ps))
-   = LayoutPathOffset r (LayoutPath (p ': ps))
+   = LayoutPathOffset (r e) (LayoutPath (p ': ps))
 
-instance MemoryLayout r => MemoryLayout (WithLayout r e) where
-   type SizeOf    (WithLayout r e) = SizeOf r
-   type Alignment (WithLayout r e) = Alignment r
+instance MemoryLayout (r e) => MemoryLayout (WithLayout r e) where
+   type SizeOf    (WithLayout r e) = SizeOf (r e)
+   type Alignment (WithLayout r e) = Alignment (r e)
 
-instance FixedStorable r e => FixedStorable (WithLayout r e) (WithLayout r e)
+instance FixedStorable (r e) e => FixedStorable (WithLayout r e) (WithLayout r e)
    where
-      fixedPeek p = WithLayout <$> fixedPeek (castPtr p :: Ptr r)
+      fixedPeek p = WithLayout <$> fixedPeek (castPtr p :: Ptr (r e))
 
-      fixedPoke p (WithLayout e) = fixedPoke (castPtr p :: Ptr r) e
+      fixedPoke p (WithLayout e) = fixedPoke (castPtr p :: Ptr (r e)) e
+
