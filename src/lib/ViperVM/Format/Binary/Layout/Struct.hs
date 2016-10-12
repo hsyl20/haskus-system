@@ -102,25 +102,25 @@ type instance LayoutPathOffset (AsStruct a) (LayoutPath (p ': ps)) = LayoutPathO
 -- | Peek fields into structure pointed by p
 data PeekFields p = PeekFields p
 
-instance forall name t ts f p fs.
+instance forall name t ts f p l.
       ( FixedStorable t t
       , f ~ IO (t -> ts)
-      , t ~ LayoutPathType (StructLayout fs) (LayoutPath '[LayoutSymbol name])
+      , t ~ LayoutPathType l (LayoutPath '[LayoutSymbol name])
       , PtrLike p
-      , KnownNat (LayoutPathOffset (StructLayout fs) (LayoutPath '[LayoutSymbol name]))
-      ) => Apply (PeekFields (p (StructLayout fs))) (Field name t, f) (IO ts)
+      , KnownNat (LayoutPathOffset l (LayoutPath '[LayoutSymbol name]))
+      ) => Apply (PeekFields (p l)) (Field name t, f) (IO ts)
    where
       apply (PeekFields p) (_, f) = f <*> peek (p --> LayoutSymbol @name)
 
 -- | Peek fields of a struct and put them in a record
-peekFields :: forall p a f fs.
-   ( HFoldl' (PeekFields (p (StructLayout fs))) (IO f) fs (IO a)
+peekFields :: forall l p a f fs.
+   ( HFoldl' (PeekFields (p l)) (IO f) fs (IO a)
    , fs ~ ExtractFields a
    , PtrLike p
    ) => f -> p a -> IO a
 peekFields f p = hFoldl' (PeekFields p') f' (undefined :: HList fs)
    where
-      p' :: p (StructLayout fs)
+      p' :: p l
       p' = castPtr p
 
       f' :: IO f
@@ -138,14 +138,15 @@ class Struct a where
    makeStruct :: StructConstructor a
 
 -- | Peek a struct
-peekStruct :: forall p a fs f.
+peekStruct :: forall p a fs f l.
    ( Struct a
    , PtrLike p
    , fs ~ ExtractFields a
    , f ~ StructConstructor a
-   , HFoldl' (PeekFields (p (StructLayout fs))) (IO f) fs (IO a)
+   , l ~ StructLayout fs
+   , HFoldl' (PeekFields (p l)) (IO f) fs (IO a)
    ) => p a -> IO a
-peekStruct p = peekFields (makeStruct @a) p
+peekStruct p = peekFields @(StructLayout fs) (makeStruct @a) p
 
 -- TODO:
 -- pokeStruct :: PtrLike p => p a -> IO a
