@@ -35,10 +35,9 @@ import ViperVM.Format.Binary.Ptr
 import ViperVM.Format.Binary.Bits ((.|.), shiftL)
 import ViperVM.Format.Binary.Storable
 import ViperVM.Format.Binary.Layout
+import ViperVM.Format.Binary.Word
 
-import GHC.Word
 import System.IO.Unsafe
-import Foreign.Marshal.Alloc (alloca)
 
 -- | Endianness
 data Endianness 

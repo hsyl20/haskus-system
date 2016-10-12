@@ -69,7 +69,6 @@ type family (:#>) p (n :: Nat) where
    (:#>) (LayoutPath xs) n = LayoutPath (Snoc xs (LayoutIndex n))
 
 
-
 -- | Data that have a memory layout
 class MemoryLayout a where
    -- | Size of the stored data (in bytes)

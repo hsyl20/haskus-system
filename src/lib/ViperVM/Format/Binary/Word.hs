@@ -16,6 +16,9 @@ module ViperVM.Format.Binary.Word
    , Int64
    , BitSize
    , WordAtLeast
+   , byteSwap16
+   , byteSwap32
+   , byteSwap64
    -- * Some C types
    , CSize(..)
    , CUShort

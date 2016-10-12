@@ -2,6 +2,7 @@
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 
 -- | Linux time
 module ViperVM.Arch.Linux.Time
@@ -20,11 +21,10 @@ module ViperVM.Arch.Linux.Time
    )
 where
 
-import Foreign.Marshal.Alloc (alloca)
-import Foreign.Marshal.Utils (with)
-
 import ViperVM.Format.Binary.Word
-import ViperVM.Format.Binary.Ptr (Ptr,nullPtr)
+import ViperVM.Format.Binary.Ptr
+import ViperVM.Format.Binary.Layout.Struct
+import ViperVM.Format.Binary.Storable
 import ViperVM.Arch.Linux.ErrorCode
 import ViperVM.Arch.Linux.Syscalls
 import ViperVM.Utils.Flow
@@ -35,6 +35,9 @@ data TimeSpec = TimeSpec {
    tsSeconds      :: {-# UNPACK #-} !Int64,
    tsNanoSeconds  :: {-# UNPACK #-} !Int64
 } deriving (Show,Eq,Ord,Generic)
+
+instance FixedStorable TimeSpec TimeSpec where
+   fixedPeek = peekStructCons TimeSpec
 
 -- | Time val
 data TimeVal = TimeVal

@@ -37,6 +37,8 @@ module ViperVM.Format.Binary.Storable
    , allocaBytes
    , alloca
    , with
+   -- * Explicit layout
+   , WithLayout (..)
    )
 where
 
@@ -272,3 +274,22 @@ instance FixedStorable Int32 Int32 where
 instance FixedStorable Int64 Int64 where
    fixedPeek = FS.peek
    fixedPoke = FS.poke
+
+-- | Explicit layout
+newtype WithLayout r e = WithLayout e deriving (Show,Eq,Ord)
+
+type instance LayoutPathType (WithLayout r e) (LayoutPath (p ': ps))
+   = LayoutPathType r (LayoutPath (p ': ps))
+
+type instance LayoutPathOffset (WithLayout r e) (LayoutPath (p ': ps))
+   = LayoutPathOffset r (LayoutPath (p ': ps))
+
+instance MemoryLayout r => MemoryLayout (WithLayout r e) where
+   type SizeOf    (WithLayout r e) = SizeOf r
+   type Alignment (WithLayout r e) = Alignment r
+
+instance FixedStorable r e => FixedStorable (WithLayout r e) (WithLayout r e)
+   where
+      fixedPeek p = WithLayout <$> fixedPeek (castPtr p :: Ptr r)
+
+      fixedPoke p (WithLayout e) = fixedPoke (castPtr p :: Ptr r) e
