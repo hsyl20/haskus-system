@@ -2,6 +2,8 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE AllowAmbiguousTypes #-}
 
 -- | Common type functions
 module ViperVM.Utils.Types
@@ -10,11 +12,21 @@ module ViperVM.Utils.Types
    , Modulo
    , module GHC.TypeLits
    , Proxy (..)
+   , natValue
+   , symbolValue
    )
 where
 
 import GHC.TypeLits
 import Data.Proxy
+
+-- | Get a Nat value
+natValue :: forall (n :: Nat) a. (KnownNat n, Num a) => a
+natValue = fromIntegral (natVal (Proxy :: Proxy n))
+
+-- | Get a Symbol value
+symbolValue :: forall (s :: Symbol). (KnownSymbol s) => String
+symbolValue = symbolVal (Proxy :: Proxy s)
 
 -- | If-then-else
 type family If c t e where
