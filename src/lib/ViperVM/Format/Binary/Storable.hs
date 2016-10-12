@@ -34,10 +34,14 @@ module ViperVM.Format.Binary.Storable
    , mallocPoke
    , mallocDup
    , copy
+   , allocaBytes
+   , alloca
+   , with
    )
 where
 
-import qualified Foreign.Storable as FS
+import qualified Foreign.Storable      as FS
+import qualified Foreign.Marshal.Alloc as Ptr
 
 import ViperVM.Format.Binary.Layout
 import ViperVM.Format.Binary.Word
@@ -194,6 +198,26 @@ mallocPoke b = do
    p <- malloc
    pokeFrom p b
    return p
+
+-- | Temporarily allocate some bytes
+allocaBytes :: Word -> (Ptr a -> IO b) -> IO b
+allocaBytes n f = Ptr.allocaBytes (fromIntegral n) f
+
+-- | Temporarily allocate enough bytes to hold a 'a'
+alloca :: forall a b c.
+   ( FixedStorable a c
+   , KnownNat (SizeOf a)
+   ) => (Ptr a -> IO b) -> IO b
+alloca = allocaBytes (sizeOf @a)
+
+-- | Temporarily store 'c' into memory and pass the pointer to 'f'
+with :: forall a b c.
+   ( FixedStorable a c
+   , KnownNat (SizeOf a)
+   ) => c -> (Ptr a -> IO b) -> IO b
+with c f = alloca $ \p -> do
+   pokeFrom p c
+   f p
 
 -- | Copy from a pointer to another
 copy :: forall a p1 p2.
