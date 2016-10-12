@@ -3,15 +3,35 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 -- | Storable class
 module ViperVM.Format.Binary.Storable
    ( FixedStorable (..)
-   , RequiredPadding
-   , Padding
-   , PaddingEx
-   , fixedSizeOf
-   , fixedAlignment
+   , peekFrom
+   , pokeFrom
+   , peek
+   , poke
+   , peekByteOffFrom
+   , pokeByteOffFrom
+   , peekByteOff
+   , pokeByteOff
+   , peekElemOffFrom
+   , pokeElemOffFrom
+   , peekElemOff
+   , pokeElemOff
+   , peekShow
+   , unsafePeekShow
+   , peekArrayFrom
+   , pokeArrayFrom
+   , peekArray
+   , pokeArray
+   , malloc
+   , mallocPoke
    )
 where
 
@@ -21,74 +41,185 @@ import ViperVM.Format.Binary.Layout
 import ViperVM.Format.Binary.Word
 import ViperVM.Format.Binary.Ptr
 import ViperVM.Utils.Types
+import System.IO.Unsafe
 
--- | Data that can be converted into a Haskell data-type from a pointer
-class MemoryLayout a => FixedStorable a where
+-- | Data that can be read into (or written from) a Haskell data-type `b` from a
+-- pointer with layout `a`.
+class MemoryLayout a => FixedStorable a b | a -> b where
    -- | Peek (read) a value from a memory address
-   fixedPeek :: Ptr a -> IO a
+   fixedPeek :: Ptr a -> IO b
 
    -- | Poke (write) a value at the given memory address
-   fixedPoke :: Ptr a -> a -> IO ()
+   fixedPoke :: Ptr a -> b -> IO ()
 
+peekFrom :: (PtrLike p, FixedStorable a b) => p a -> IO b
+{-# INLINE peekFrom #-}
+peekFrom p = withPtr p fixedPeek
 
--- | Compute the required padding between a and b to respect b's alignment
-type family RequiredPadding a b where
-   RequiredPadding a b = Padding (SizeOf a) b
+pokeFrom :: (PtrLike p, FixedStorable a b) => p a -> b -> IO ()
+{-# INLINE pokeFrom #-}
+pokeFrom p b = withPtr p (`fixedPoke` b)
 
--- | Compute the required padding between the size sz and b to respect b's alignment
-type family Padding (sz :: Nat) b where
-   Padding sz b = PaddingEx (Modulo sz (Alignment b)) (Alignment b)
+peek :: (PtrLike p, FixedStorable a a) => p a -> IO a
+{-# INLINE peek #-}
+peek = peekFrom
 
-type family PaddingEx (m :: Nat) (a :: Nat) where
-   PaddingEx 0 a = 0
-   PaddingEx m a = a - m
+poke :: (PtrLike p, FixedStorable a a) => p a -> a -> IO ()
+{-# INLINE poke #-}
+poke = pokeFrom
 
+peekByteOffFrom :: (PtrLike p, FixedStorable a b) => p a -> Int -> IO b
+{-# INLINE peekByteOffFrom #-}
+peekByteOffFrom p n = withPtr (p `indexPtr` n) fixedPeek
 
--- | Get fixedally known size
-fixedSizeOf :: forall a v.
-   ( FixedStorable a
-   , v ~ SizeOf a
-   , KnownNat v
-   ) => a -> Word
-fixedSizeOf _ = fromIntegral (natVal (Proxy :: Proxy v))
+pokeByteOffFrom :: (PtrLike p, FixedStorable a b) => p a -> Int -> b -> IO ()
+{-# INLINE pokeByteOffFrom #-}
+pokeByteOffFrom p n b = withPtr (p `indexPtr` n) (`fixedPoke` b)
 
--- | Get fixedally known alignment
-fixedAlignment :: forall a v.
-   ( FixedStorable a
-   , v ~ SizeOf a
-   , KnownNat v
-   ) => a -> Word
-fixedAlignment _ = fromIntegral (natVal (Proxy :: Proxy v))
+peekByteOff :: (PtrLike p, FixedStorable a a) => p a -> Int -> IO a
+{-# INLINE peekByteOff #-}
+peekByteOff = peekByteOffFrom
 
+pokeByteOff :: (PtrLike p, FixedStorable a a) => p a -> Int -> a -> IO ()
+{-# INLINE pokeByteOff #-}
+pokeByteOff = pokeByteOffFrom
 
-instance FixedStorable Word8 where
+peekElemOffFrom :: forall p a b.
+   ( PtrLike p
+   , FixedStorable a b
+   , KnownNat (SizeOf a)
+   ) => p a -> Int -> IO b
+{-# INLINE peekElemOffFrom #-}
+peekElemOffFrom p n = withPtr (p `indexPtr` off) fixedPeek
+   where off = n * fromIntegral (sizeOf @a)
+
+pokeElemOffFrom :: forall p a b.
+   ( PtrLike p
+   , FixedStorable a b
+   , KnownNat (SizeOf a)
+   ) => p a -> Int -> b -> IO ()
+{-# INLINE pokeElemOffFrom #-}
+pokeElemOffFrom p n b = withPtr (p `indexPtr` off) (`fixedPoke` b)
+   where off = n * fromIntegral (sizeOf @a)
+
+peekElemOff :: forall p a.
+   ( PtrLike p
+   , FixedStorable a a
+   , KnownNat (SizeOf a)
+   ) => p a -> Int -> IO a
+{-# INLINE peekElemOff #-}
+peekElemOff = peekElemOffFrom
+
+pokeElemOff :: forall p a.
+   ( PtrLike p
+   , FixedStorable a a
+   , KnownNat (SizeOf a)
+   ) => p a -> Int -> a -> IO ()
+{-# INLINE pokeElemOff #-}
+pokeElemOff = pokeElemOffFrom
+
+-- | Show the element which is pointed at
+peekShow :: (Show b, PtrLike p, FixedStorable a b) => p a -> IO String
+{-# INLINE peekShow #-}
+peekShow p = show <$> peekFrom p
+
+-- | Show the element which is pointed at
+unsafePeekShow :: (Show b, PtrLike p, FixedStorable a b) => p a -> String
+{-# NOINLINE unsafePeekShow #-}
+unsafePeekShow = unsafePerformIO . peekShow
+
+-- | Peek 'n' elements
+peekArrayFrom ::
+   ( PtrLike p
+   , FixedStorable a b
+   , KnownNat (SizeOf a)
+   ) => Word -> p a -> IO [b]
+{-# INLINE peekArrayFrom #-}
+peekArrayFrom n p = go [] (fromIntegral n)
+   where
+      go xs 0 = return xs
+      go xs i = do
+         x <- peekElemOffFrom p i
+         go (x:xs) (i-1)
+
+-- | Poke all the elements in the list
+pokeArrayFrom ::
+   ( PtrLike p
+   , FixedStorable a b
+   , KnownNat (SizeOf a)
+   ) => p a -> [b] -> IO ()
+{-# INLINE pokeArrayFrom #-}
+pokeArrayFrom p bs = go 0 bs
+   where
+      go _ []     = return ()
+      go i (x:xs) = do
+         pokeElemOffFrom p i x 
+         go (i+1) xs
+
+-- | Peek 'n' elements
+peekArray ::
+   ( PtrLike p
+   , FixedStorable a a
+   , KnownNat (SizeOf a)
+   ) => Word -> p a -> IO [a]
+{-# INLINE peekArray #-}
+peekArray = peekArrayFrom
+
+-- | Poke all the elements in the list
+pokeArray ::
+   ( PtrLike p
+   , FixedStorable a a
+   , KnownNat (SizeOf a)
+   ) => p a -> [a] -> IO ()
+{-# INLINE pokeArray #-}
+pokeArray = pokeArrayFrom
+
+-- | Allocate memory able to contain 'a'
+malloc :: forall a p.
+   ( PtrLike p
+   , KnownNat (SizeOf a)
+   ) => IO (p a)
+malloc = mallocBytes (natValue @(SizeOf a))
+
+-- | Allocate memory able to contain 'b' and put it in it
+mallocPoke :: forall a b p.
+   ( PtrLike p
+   , FixedStorable a b
+   , KnownNat (SizeOf a)
+   ) => b -> IO (p a)
+mallocPoke b = do
+   p <- malloc
+   pokeFrom p b
+   return p
+
+instance FixedStorable Word8 Word8 where
    fixedPeek = FS.peek
    fixedPoke = FS.poke
 
-instance FixedStorable Word16 where
+instance FixedStorable Word16 Word16 where
    fixedPeek = FS.peek
    fixedPoke = FS.poke
 
-instance FixedStorable Word32 where
+instance FixedStorable Word32 Word32 where
    fixedPeek = FS.peek
    fixedPoke = FS.poke
 
-instance FixedStorable Word64 where
+instance FixedStorable Word64 Word64 where
    fixedPeek = FS.peek
    fixedPoke = FS.poke
 
-instance FixedStorable Int8 where
+instance FixedStorable Int8 Int8 where
    fixedPeek = FS.peek
    fixedPoke = FS.poke
 
-instance FixedStorable Int16 where
+instance FixedStorable Int16 Int16 where
    fixedPeek = FS.peek
    fixedPoke = FS.poke
 
-instance FixedStorable Int32 where
+instance FixedStorable Int32 Int32 where
    fixedPeek = FS.peek
    fixedPoke = FS.poke
 
-instance FixedStorable Int64 where
+instance FixedStorable Int64 Int64 where
    fixedPeek = FS.peek
    fixedPoke = FS.poke

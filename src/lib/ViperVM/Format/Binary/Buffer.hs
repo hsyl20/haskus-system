@@ -1,5 +1,6 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 -- | A memory buffer with a fixed address
 --
@@ -61,9 +62,6 @@ module ViperVM.Format.Binary.Buffer
    )
 where
 
-import Foreign.Marshal.Alloc
-import Foreign.Marshal.Array
-import Foreign.Storable
 import System.IO.Unsafe
 import Control.Monad
 import Data.ByteString (ByteString)
@@ -74,7 +72,10 @@ import qualified Data.ByteString.Unsafe as BS
 import ViperVM.Format.Binary.Ptr
 import ViperVM.Format.Binary.Word
 import ViperVM.Format.Binary.Bits.Basic
+import ViperVM.Format.Binary.Storable
+import ViperVM.Format.Binary.Layout
 import ViperVM.Utils.Memory (memCopy,memSet)
+import ViperVM.Utils.Types
 
 -- | A buffer
 newtype Buffer = Buffer ByteString deriving (Eq,Ord)
@@ -141,9 +142,9 @@ bufferZipWith f a b
             withBufferPtr a $ \pa ->
                withBufferPtr b $ \pb ->
                   forM_ [0..sz-1] $ \off -> do
-                     v <- f <$> peekByteOff pa off
-                            <*> peekByteOff pb off
-                     pokeByteOff pc off (v :: Word8)
+                     v <- f <$> peekByteOff pa (fromIntegral off)
+                            <*> peekByteOff pb (fromIntegral off)
+                     pokeByteOff (castPtr pc) (fromIntegral off) (v :: Word8)
             bufferUnsafePackPtr (bufferSize a) pc
 
 -- | Unsafe: be careful if you modify the buffer contents or you may break
@@ -169,12 +170,16 @@ bufferSize (Buffer bs) =
       s = BS.length bs
 
 -- | Peek a storable
-bufferPeekStorable :: forall a. Storable a => Buffer -> a
+bufferPeekStorable :: forall a.
+   ( FixedStorable a a
+   , KnownNat (SizeOf a)
+   ) => Buffer -> a
 bufferPeekStorable = snd . bufferPopStorable
 
 -- | Peek a storable at the given offset
 bufferPeekStorableAt :: forall a.
-   ( Storable a
+   ( FixedStorable a a
+   , KnownNat (SizeOf a)
    )
    => Buffer -> Word -> a
 bufferPeekStorableAt b n
@@ -182,18 +187,21 @@ bufferPeekStorableAt b n
    | otherwise = unsafePerformIO $ withBufferPtr b $ \p ->
       peekByteOff p (fromIntegral n)
    where
-      sza = fromIntegral (sizeOf (undefined :: a))
+      sza = fromIntegral (layoutSizeOf (undefined :: a))
    
 
 -- | Pop a Storable and return the new buffer
-bufferPopStorable :: forall a. Storable a => Buffer -> (Buffer,a)
+bufferPopStorable :: forall a.
+   ( FixedStorable a a
+   , KnownNat (SizeOf a)
+   ) => Buffer -> (Buffer,a)
 bufferPopStorable buf
    | bufferSize buf < sza = error "bufferRead: out of bounds"
    | otherwise            = unsafePerformIO $ do
          a <- withBufferPtr buf peek
          return (bufferDrop sza buf, a)
    where
-      sza = fromIntegral (sizeOf (undefined :: a)) 
+      sza = fromIntegral (layoutSizeOf (undefined :: a)) 
 
 -- | Poke a buffer
 bufferPoke :: Ptr a -> Buffer -> IO ()
@@ -277,20 +285,26 @@ bufferPackByteList :: [Word8] -> Buffer
 bufferPackByteList = Buffer . BS.pack
 
 -- | Pack a Storable
-bufferPackStorable :: forall a. Storable a => a -> Buffer
+bufferPackStorable :: forall a.
+   ( FixedStorable a a
+   , KnownNat (SizeOf a)
+   ) => a -> Buffer
 bufferPackStorable x = Buffer $ unsafePerformIO $ do
-   let sza = sizeOf (undefined :: a)
-   p <- malloc
+   let sza = layoutSizeOf (undefined :: a)
+   p <- mallocBytes (fromIntegral sza)
    poke p x
-   BS.unsafePackMallocCStringLen (castPtr p, sza)
+   BS.unsafePackMallocCStringLen (castPtr p, fromIntegral sza)
 
 -- | Pack a list of Storable
-bufferPackStorableList :: forall a. Storable a => [a] -> Buffer
+bufferPackStorableList :: forall a.
+   ( FixedStorable a a
+   , KnownNat (SizeOf a)
+   ) => [a] -> Buffer
 bufferPackStorableList xs = Buffer $ unsafePerformIO $ do
    let 
-      sza = sizeOf (undefined :: a)
+      sza = fromIntegral (layoutSizeOf (undefined :: a))
       lxs = length xs
-   p <- mallocArray lxs
+   p <- mallocBytes (fromIntegral (lxs * sza))
    forM_ (xs `zip` [0..]) $ \(x,o) ->
       pokeElemOff p o x
    BS.unsafePackMallocCStringLen (castPtr p, sza * lxs)

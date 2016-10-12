@@ -127,12 +127,12 @@ recordField :: forall name a fs o.
    ( o ~ FieldOffset name fs 0
    , a ~ FieldType name fs
    , KnownNat o
-   , FixedStorable a
+   , FixedStorable a a
    ) => Proxy (name :: Symbol) -> Record fs -> a
 recordField p r@(Record fp) = unsafePerformIO $
    withForeignPtr fp $ \ptr ->do
       let ptr' = ptr `indexPtr` recordFieldOffset p r
-      fixedPeek (castPtr ptr')
+      fixedPeek (castPtr ptr' :: Ptr a)
 
 data Path (fs :: [*])
 
@@ -150,15 +150,26 @@ recordFieldPath :: forall path a fs o.
    ( o ~ FieldPathOffset fs path 0
    , a ~ FieldPathType fs path
    , KnownNat o
-   , FixedStorable a
+   , FixedStorable a a
    ) => Path path -> Record fs -> a
 recordFieldPath _ (Record fp) = unsafePerformIO $
    withForeignPtr fp $ \ptr -> do
       let
          o    = fromIntegral (natVal (Proxy :: Proxy o))
          ptr' = ptr `indexPtr` o
-      fixedPeek (castPtr ptr')
+      fixedPeek (castPtr ptr' :: Ptr a)
 
+-- | Compute the required padding between a and b to respect b's alignment
+type family RequiredPadding a b where
+   RequiredPadding a b = Padding (SizeOf a) b
+
+-- | Compute the required padding between the size sz and b to respect b's alignment
+type family Padding (sz :: Nat) b where
+   Padding sz b = PaddingEx (Modulo sz (Alignment b)) (Alignment b)
+
+type family PaddingEx (m :: Nat) (a :: Nat) where
+   PaddingEx 0 a = 0
+   PaddingEx m a = a - m
 
 instance MemoryLayout (Record fs) where
    type SizeOf (Record fs)    = FullRecordSize fs
@@ -169,7 +180,7 @@ instance forall fs s.
       ( s ~ FullRecordSize fs
       , KnownNat s
       )
-      => FixedStorable (Record fs)
+      => FixedStorable (Record fs) (Record fs)
    where
       fixedPeek ptr = do
          let sz = recordSize (undefined :: Record fs)
@@ -192,7 +203,7 @@ instance forall fs typ name rec b l2 i r.
    , i ~ (rec, HList l2)                    -- input type
    , typ ~ FieldType name fs
    , KnownNat (FieldOffset name fs 0)
-   , FixedStorable typ
+   , FixedStorable typ typ
    , KnownSymbol name
    , r ~ (rec, HList ((String,typ) ': l2))  -- result type
    ) => Apply Extract (b, i) r where

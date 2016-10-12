@@ -4,12 +4,17 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE AllowAmbiguousTypes #-}
 
 -- | Memory layout
 --
 -- Describe a memory region
 module ViperVM.Format.Binary.Layout
    ( MemoryLayout (..)
+   , layoutSizeOf
+   , layoutAlignment
+   , sizeOf
+   , alignment
    -- * Layout path
    , LayoutPathType
    , LayoutPathOffset
@@ -72,6 +77,34 @@ class MemoryLayout a where
 
    -- | Alignment requirement (in bytes)
    type Alignment a :: Nat
+
+-- | Get fixedally known size
+layoutSizeOf :: forall a .
+   ( MemoryLayout a
+   , KnownNat (SizeOf a)
+   ) => a -> Word
+layoutSizeOf _ = fromIntegral (natVal (Proxy :: Proxy (SizeOf a)))
+
+-- | Get fixedally known alignment
+layoutAlignment :: forall a.
+   ( MemoryLayout a
+   , KnownNat (Alignment a)
+   ) => a -> Word
+layoutAlignment _ = fromIntegral (natVal (Proxy :: Proxy (Alignment a)))
+
+-- | Get fixedally known size
+sizeOf :: forall a .
+   ( MemoryLayout a
+   , KnownNat (SizeOf a)
+   ) => Word
+sizeOf = fromIntegral (natVal (Proxy :: Proxy (SizeOf a)))
+
+-- | Get fixedally known alignment
+alignment :: forall a.
+   ( MemoryLayout a
+   , KnownNat (Alignment a)
+   ) => Word
+alignment = fromIntegral (natVal (Proxy :: Proxy (Alignment a)))
 
 
 instance MemoryLayout Word8 where

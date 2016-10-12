@@ -167,6 +167,7 @@ library
     ViperVM.Utils.Hash
     ViperVM.Utils.HList
     ViperVM.Utils.Embed
+    ViperVM.Utils.List
     ViperVM.Utils.Maybe
     ViperVM.Utils.Memory
     ViperVM.Utils.Types

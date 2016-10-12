@@ -45,6 +45,7 @@ module ViperVM.Format.Binary.Ptr
 where
 
 import qualified Foreign.Ptr               as Ptr
+import qualified Foreign.Marshal.Alloc     as Ptr
 import qualified Foreign.ForeignPtr        as FP
 import qualified Foreign.ForeignPtr.Unsafe as FP
 import Foreign.Ptr (Ptr)
@@ -101,6 +102,9 @@ class PtrLike (p :: * -> *) where
    -- | Use the pointer
    withPtr :: p a -> (Ptr a -> IO b) -> IO b
 
+   -- | Malloc the given number of bytes
+   mallocBytes :: Word -> IO (p a)
+
    -- | Add offset to the given layout field
    indexField :: forall path l.
       ( KnownNat (LayoutPathOffset l path)
@@ -147,6 +151,9 @@ instance PtrLike Ptr where
    {-# INLINE withPtr #-}
    withPtr p f = f p
 
+   {-# INLINE mallocBytes #-}
+   mallocBytes = Ptr.mallocBytes . fromIntegral
+
 
 instance PtrLike FinalizedPtr where
    {-# INLINE nullPtr #-}
@@ -167,3 +174,8 @@ instance PtrLike FinalizedPtr where
 
    {-# INLINE withPtr #-}
    withPtr = withFinalizedPtr
+
+   {-# INLINE mallocBytes #-}
+   mallocBytes n = do
+      fp <- FP.mallocForeignPtrBytes (fromIntegral n)
+      return (FinalizedPtr fp 0)

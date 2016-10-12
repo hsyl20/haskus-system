@@ -8,6 +8,7 @@
 -- | Structure (named fields with padding for alignment)
 module ViperVM.Format.Binary.Layout.Struct
    ( StructLayout
+   , Struct
    )
 where
 
@@ -67,3 +68,26 @@ type family StructAlignment (fs :: [*]) (a :: Nat) where
       StructAlignment fs
          (IfNat (a <=? Alignment typ) (Alignment typ) a)
 
+-- | Compute the required padding between a and b to respect b's alignment
+type family RequiredPadding a b where
+   RequiredPadding a b = Padding (SizeOf a) b
+
+-- | Compute the required padding between the size sz and b to respect b's alignment
+type family Padding (sz :: Nat) b where
+   Padding sz b = PaddingEx (Modulo sz (Alignment b)) (Alignment b)
+
+type family PaddingEx (m :: Nat) (a :: Nat) where
+   PaddingEx 0 a = 0
+   PaddingEx m a = a - m
+
+
+
+-- | Wrapper for a data-type used as a Struct layout
+data Struct a
+
+instance MemoryLayout (Struct a) where
+   type SizeOf    (Struct a) = SizeOf    (StructLayout (ExtractFields a))
+   type Alignment (Struct a) = Alignment (StructLayout (ExtractFields a))
+
+type instance LayoutPathType (Struct a) (LayoutPath (p ': ps)) = LayoutPathType (StructLayout (ExtractFields a)) (LayoutPath (p ': ps))
+type instance LayoutPathOffset (Struct a) (LayoutPath (p ': ps)) = LayoutPathOffset (StructLayout (ExtractFields a)) (LayoutPath (p ': ps))

@@ -1,6 +1,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE AllowAmbiguousTypes #-}
@@ -13,6 +14,7 @@ module ViperVM.Utils.Types
    , module GHC.TypeLits
    , Proxy (..)
    , natValue
+   , natValue'
    , symbolValue
    )
 where
@@ -23,6 +25,10 @@ import Data.Proxy
 -- | Get a Nat value
 natValue :: forall (n :: Nat) a. (KnownNat n, Num a) => a
 natValue = fromIntegral (natVal (Proxy :: Proxy n))
+
+-- | Get a Nat value
+natValue' :: forall (n :: Nat). KnownNat n => Word
+natValue' = natValue @n
 
 -- | Get a Symbol value
 symbolValue :: forall (s :: Symbol). (KnownSymbol s) => String

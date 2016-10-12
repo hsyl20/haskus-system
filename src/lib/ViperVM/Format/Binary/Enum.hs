@@ -1,6 +1,9 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE DefaultSignatures #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 -- | Store an Enum in the given backing word type
 module ViperVM.Format.Binary.Enum
@@ -14,8 +17,6 @@ where
 import ViperVM.Format.Binary.Layout
 import ViperVM.Format.Binary.Storable
 import ViperVM.Format.Binary.Ptr
-import Foreign.Storable
-import Foreign.CStorable
 
 -----------------------------------------------------------------------------
 -- EnumField b a: directly store the value of enum "a" as a "b"
@@ -24,40 +25,18 @@ import Foreign.CStorable
 -- | Store enum 'a' as a 'b'
 newtype EnumField b a = EnumField a deriving (Show,Eq)
 
-instance
-      ( Storable b
-      , Integral b
-      , CEnum a
-      ) => Storable (EnumField b a)
-   where
-      sizeOf _             = sizeOf (undefined :: b)
-      alignment _          = alignment (undefined :: b)
-      peek p               = (EnumField . toCEnum) <$> peek (castPtr p :: Ptr b)
-      poke p (EnumField v) = poke (castPtr p :: Ptr b) (fromCEnum v)
-
-instance
-      ( Integral b
-      , Storable b
-      , CEnum a
-      ) => CStorable (EnumField b a)
-   where
-      cPeek      = peek
-      cPoke      = poke
-      cAlignment = alignment
-      cSizeOf    = sizeOf
-
 instance MemoryLayout (EnumField b a) where
    type SizeOf (EnumField b a)    = SizeOf b
    type Alignment (EnumField b a) = Alignment b
 
 instance
       ( Integral b
-      , FixedStorable b
+      , FixedStorable b b
       , CEnum a
-      ) => FixedStorable (EnumField b a)
+      ) => FixedStorable (EnumField b a) a
    where
-      fixedPeek p                   = (EnumField . toCEnum) <$> fixedPeek (castPtr p :: Ptr b)
-      fixedPoke p (EnumField v)     = fixedPoke (castPtr p :: Ptr b) (fromCEnum v)
+      fixedPeek p   = toCEnum <$> fixedPeek (castPtr p :: Ptr b)
+      fixedPoke p v = fixedPoke (castPtr p :: Ptr b) (fromCEnum v)
 
 -- | Read an enum field
 fromEnumField :: CEnum a => EnumField b a -> a

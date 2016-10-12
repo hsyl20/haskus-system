@@ -1,6 +1,8 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleInstances #-}
 
 -- | Byte order ("endianness")
 --
@@ -35,10 +37,7 @@ import ViperVM.Format.Binary.Storable
 import ViperVM.Format.Binary.Layout
 
 import GHC.Word
-import Foreign.Storable
-import Foreign.CStorable
 import System.IO.Unsafe
-import Foreign.Marshal.Array
 import Foreign.Marshal.Alloc (alloca)
 
 -- | Endianness
@@ -180,58 +179,30 @@ instance ByteReversable Word64 where
 
 
 -- | Force a data to be read/stored as big-endian
-newtype AsBigEndian a    = AsBigEndian a    deriving (Eq,Ord,Enum,Num,Integral,Real)
-
-instance Show a => Show (AsBigEndian a) where
-   show (AsBigEndian a) = show a
-
+data AsBigEndian a = AsBigEndian a deriving (Show,Eq,Ord)
 -- | Force a data to be read/stored as little-endian
-newtype AsLittleEndian a = AsLittleEndian a deriving (Eq,Ord,Enum,Num,Integral,Real)
-
-instance Show a => Show (AsLittleEndian a) where
-   show (AsLittleEndian a) = show a
+data AsLittleEndian a = AsLittleEndian a deriving (Show,Eq,Ord)
 
 instance MemoryLayout (AsBigEndian a) where
    type SizeOf (AsBigEndian a)    = SizeOf a
    type Alignment (AsBigEndian a) = Alignment a
 
-
-instance (ByteReversable a, FixedStorable a) => FixedStorable (AsBigEndian a) where
-   fixedPeek ptr                 = AsBigEndian . bigEndianToHost <$> fixedPeek (castPtr ptr)
-   fixedPoke ptr (AsBigEndian v) = fixedPoke (castPtr ptr) (hostToBigEndian v)
-
-
-instance (ByteReversable a, Storable a) => Storable (AsBigEndian a) where
-   sizeOf _    = sizeOf (undefined :: a)
-   alignment _ = alignment (undefined :: a)
-
-   peek ptr                 = AsBigEndian . bigEndianToHost <$> peek (castPtr ptr)
-   poke ptr (AsBigEndian v) = poke (castPtr ptr) (hostToBigEndian v)
-
-instance (ByteReversable a, Storable a) => CStorable (AsBigEndian a) where
-   cPeek      = peek
-   cPoke      = poke
-   cSizeOf    = sizeOf
-   cAlignment = alignment
-
 instance MemoryLayout (AsLittleEndian a) where
    type SizeOf (AsLittleEndian a)    = SizeOf a
    type Alignment (AsLittleEndian a) = Alignment a
 
-   
-instance (ByteReversable a, FixedStorable a) => FixedStorable (AsLittleEndian a) where
-   fixedPeek ptr                    = AsLittleEndian . bigEndianToHost <$> fixedPeek (castPtr ptr)
-   fixedPoke ptr (AsLittleEndian v) = fixedPoke (castPtr ptr) (hostToLittleEndian v)
+instance forall a.
+      ( ByteReversable a
+      , FixedStorable a a
+      ) => FixedStorable (AsBigEndian a) a
+   where
+      fixedPeek ptr   = bigEndianToHost <$> fixedPeek (castPtr ptr :: Ptr a)
+      fixedPoke ptr v = fixedPoke (castPtr ptr :: Ptr a) (hostToBigEndian v)
 
-instance (ByteReversable a, Storable a) => Storable (AsLittleEndian a) where
-   sizeOf _    = sizeOf (undefined :: a)
-   alignment _ = alignment (undefined :: a)
-
-   peek ptr                 = AsLittleEndian . bigEndianToHost <$> peek (castPtr ptr)
-   poke ptr (AsLittleEndian v) = poke (castPtr ptr) (hostToLittleEndian v)
-
-instance (ByteReversable a, Storable a) => CStorable (AsLittleEndian a) where
-   cPeek      = peek
-   cPoke      = poke
-   cSizeOf    = sizeOf
-   cAlignment = alignment
+instance forall a.
+      ( ByteReversable a
+      , FixedStorable a a
+      ) => FixedStorable (AsLittleEndian a) a
+   where
+      fixedPeek ptr   = bigEndianToHost <$> fixedPeek (castPtr ptr :: Ptr a)
+      fixedPoke ptr v = fixedPoke (castPtr ptr :: Ptr a) (hostToLittleEndian v)

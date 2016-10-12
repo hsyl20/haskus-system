@@ -8,6 +8,7 @@
 -- | Packed Structure (named fields without padding for alignment)
 module ViperVM.Format.Binary.Layout.PackedStruct
    ( PackedStructLayout
+   , PackedStruct
    )
 where
 
@@ -33,3 +34,7 @@ type family PackedStructFieldOffset' (fs :: [*]) (name :: Symbol) (sz :: Nat) wh
    PackedStructFieldOffset' (Field name typ ': fs) name sz = sz
    PackedStructFieldOffset' (Field xx typ ': fs)   name sz =
       PackedStructFieldOffset' fs name (sz + SizeOf typ)
+
+-- | Convert an Haskell data-type into a PackedStructLayout
+type family PackedStruct a where
+   PackedStruct a = PackedStructLayout (ExtractFields a)
