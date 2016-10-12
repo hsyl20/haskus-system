@@ -6,6 +6,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 
 module ViperVM.Format.Binary.Vector
    ( Vector (..)
@@ -40,6 +41,17 @@ instance
    , KnownNat (SizeOf a)
    ) => Show (Vector n a) where
    show v = "fromList " ++ show (toList v)
+
+instance MemoryLayout (Vector n e) where
+   type SizeOf    (Vector n e) = SizeOf    (VectorLayout n e)
+   type Alignment (Vector n e) = Alignment (VectorLayout n e)
+
+instance
+      ( KnownNat (n * SizeOf e)
+      ) => FixedStorable (Vector n e) (Vector n e)
+   where
+   fixedPeek p              = Vector <$> mallocDup (castPtr p)
+   fixedPoke p2 (Vector p1) = castPtr p1 `copy` p2
 
 -- | Empty vector
 empty :: Vector 0 e

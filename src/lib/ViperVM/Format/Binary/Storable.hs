@@ -32,6 +32,8 @@ module ViperVM.Format.Binary.Storable
    , pokeArray
    , malloc
    , mallocPoke
+   , mallocDup
+   , copy
    )
 where
 
@@ -41,6 +43,7 @@ import ViperVM.Format.Binary.Layout
 import ViperVM.Format.Binary.Word
 import ViperVM.Format.Binary.Ptr
 import ViperVM.Utils.Types
+import ViperVM.Utils.Memory
 import System.IO.Unsafe
 
 -- | Data that can be read into (or written from) a Haskell data-type `b` from a
@@ -191,6 +194,28 @@ mallocPoke b = do
    p <- malloc
    pokeFrom p b
    return p
+
+-- | Copy from a pointer to another
+copy :: forall a p1 p2.
+   ( PtrLike p1
+   , PtrLike p2
+   , KnownNat (SizeOf a)
+   ) => p1 a -> p2 a -> IO ()
+copy fp1 fp2 = 
+   withPtr fp1 $ \p1 ->
+      withPtr fp2 $ \p2 ->
+         memCopy p2 p1 (natValue @(SizeOf a))
+
+-- | Allocate memory able to contain 'a' and duplicate it in it
+mallocDup :: forall a b p1 p2.
+   ( PtrLike p1
+   , PtrLike p2
+   , KnownNat (SizeOf a)
+   ) => p1 a -> IO (p2 a)
+mallocDup fp1 = do
+   fp2 <- mallocBytes (natValue @(SizeOf a))
+   fp1 `copy` fp2
+   return fp2
 
 instance FixedStorable Word8 Word8 where
    fixedPeek = FS.peek

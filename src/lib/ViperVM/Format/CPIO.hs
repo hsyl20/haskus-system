@@ -26,7 +26,6 @@ import Control.Monad (when)
 import Data.Foldable (forM_)
 import Numeric (showHex)
 import Foreign.Storable
-import Foreign.CStorable
 import GHC.Generics
 import Data.Char (ord)
 
@@ -129,13 +128,7 @@ data FileDesc = FileDesc
    , fileDevMinor    :: Word64   -- ^ Disk device minor number
    , fileRDevMajor   :: Word64   -- ^ Special file major number
    , fileRDevMinor   :: Word64   -- ^ Special file minor number
-   } deriving (Show,Generic,CStorable)
-
-instance Storable FileDesc where
-   peek      = cPeek
-   poke      = cPoke
-   sizeOf    = cSizeOf
-   alignment = cAlignment
+   } deriving (Show,Generic)
 
 -- | Put a number as a 8-char string padding left with zeros
 putNumber :: Word64 -> Put

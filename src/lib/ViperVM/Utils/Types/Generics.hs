@@ -4,10 +4,12 @@
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE UndecidableInstances #-}
 
+-- | Generics
 module ViperVM.Utils.Types.Generics
    ( ExtractFields
    , Field
    , FieldType
+   , module GHC.Generics
    )
 where
 

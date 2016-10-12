@@ -34,6 +34,7 @@ module ViperVM.Format.Binary.Ptr
    , ForeignPtr
    , FP.withForeignPtr
    , FP.mallocForeignPtrBytes
+   , nullForeignPtr
    -- * Function pointer
    , Ptr.FunPtr
    , Ptr.nullFunPtr
@@ -70,12 +71,14 @@ instance Show (FinalizedPtr l) where
    show (FinalizedPtr fp o) = show (FP.unsafeForeignPtrToPtr fp 
                                     `indexPtr` fromIntegral o)
 
+-- | Null foreign pointer
+nullForeignPtr :: ForeignPtr a
+{-# NOINLINE nullForeignPtr #-}
+nullForeignPtr = unsafePerformIO $ FP.newForeignPtr_ nullPtr
+
 -- | Null finalized pointer
 nullFinalizedPtr :: FinalizedPtr a
-{-# NOINLINE nullFinalizedPtr #-}
-nullFinalizedPtr = unsafePerformIO $ do
-   fp <- FP.newForeignPtr_ nullPtr
-   return (FinalizedPtr fp 0)
+nullFinalizedPtr = FinalizedPtr nullForeignPtr 0
 
 -- | Use a finalized pointer
 withFinalizedPtr :: FinalizedPtr a -> (Ptr a -> IO b) -> IO b

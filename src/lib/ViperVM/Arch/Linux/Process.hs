@@ -25,8 +25,6 @@ where
 
 import Control.Monad (void)
 import Foreign.Marshal.Alloc (alloca)
-import Foreign.Storable
-import Foreign.CStorable
 
 import ViperVM.Format.Binary.Ptr (Ptr, nullPtr)
 import ViperVM.Format.Binary.Word
@@ -34,16 +32,16 @@ import ViperVM.Arch.Linux.Syscalls
 import ViperVM.Arch.Linux.ErrorCode
 
 -- | Process ID
-newtype ProcessID = ProcessID Word32 deriving (Show,Eq,Ord,Storable,CStorable)
+newtype ProcessID = ProcessID Word32 deriving (Show,Eq,Ord)
 
 -- | Thread ID
-newtype ThreadID = ThreadID Word32 deriving (Show,Eq,Ord,Storable,CStorable)
+newtype ThreadID = ThreadID Word32 deriving (Show,Eq,Ord)
 
 -- | User ID
-newtype UserID = UserID Word32 deriving (Show,Eq,Ord,Storable,CStorable)
+newtype UserID = UserID Word32 deriving (Show,Eq,Ord)
 
 -- | Group ID
-newtype GroupID = GroupID Word32 deriving (Show,Eq,Ord,Storable,CStorable)
+newtype GroupID = GroupID Word32 deriving (Show,Eq,Ord)
 
 -- | Exit the current process with the given return value
 -- This syscall does not return.

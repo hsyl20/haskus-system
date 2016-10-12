@@ -9,16 +9,12 @@ module ViperVM.Arch.Linux.Info
    )
 where
 
-import Foreign.Marshal.Alloc
-import Foreign.Storable
-import Foreign.CStorable
-import GHC.Generics
-
 import ViperVM.Arch.Linux.ErrorCode
 import ViperVM.Arch.Linux.Syscalls
 import ViperVM.Format.Binary.Word
 import ViperVM.Format.Binary.Ptr
 import ViperVM.Format.String
+import ViperVM.Utils.Types.Generics
 
 -- | struct utsname
 data SystemInfo = SystemInfo
@@ -27,13 +23,7 @@ data SystemInfo = SystemInfo
    , systemRelease  :: CStringBuffer 65
    , systemVersion  :: CStringBuffer 65
    , systemMachine  :: CStringBuffer 65
-   } deriving (Show,Generic,CStorable)
-
-instance Storable SystemInfo where
-   peek      = cPeek
-   poke      = cPoke
-   alignment = cAlignment
-   sizeOf    = cSizeOf
+   } deriving (Show,Generic)
 
 -- | "uname" syscall
 systemInfo :: SysRet SystemInfo
