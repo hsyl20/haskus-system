@@ -12,6 +12,7 @@ module ViperVM.Format.Binary.Layout.Rect
 where
 
 import ViperVM.Format.Binary.Layout
+import ViperVM.Format.Binary.Storable
 import ViperVM.Format.Binary.Layout.Vector
 import ViperVM.Utils.Types
 
@@ -34,6 +35,6 @@ type instance LayoutPathOffset (RectLayout w h p e) (LayoutPath (LayoutIndex i '
       ((SizeOf e * w + p) * i + (LayoutPathOffset (VectorLayout w e) (LayoutPath ps)))
    --   OutOfBound
 
-instance MemoryLayout (RectLayout w h p e) where
-   type SizeOf    (RectLayout w h p e) = h * (p + w * SizeOf e)
-   type Alignment (RectLayout w h p e) = Alignment e
+-- instance MemoryLayout (RectLayout w h p e) where
+--    type SizeOf    (RectLayout w h p e) = h * (p + w * SizeOf e)
+--    type Alignment (RectLayout w h p e) = Alignment e

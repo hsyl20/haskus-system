@@ -35,23 +35,21 @@ import System.IO.Unsafe
 newtype Vector (n :: Nat) e = Vector (FinalizedPtr (VectorLayout n e))
 
 instance
-   ( FixedStorable a a
+   ( Storable a a
    , Show a
    , KnownNat n
    , KnownNat (SizeOf a)
    ) => Show (Vector n a) where
    show v = "fromList " ++ show (toList v)
 
-instance MemoryLayout (Vector n e) where
-   type SizeOf    (Vector n e) = SizeOf    (VectorLayout n e)
-   type Alignment (Vector n e) = Alignment (VectorLayout n e)
-
 instance
       ( KnownNat (n * SizeOf e)
-      ) => FixedStorable (Vector n e) (Vector n e)
+      ) => Storable (Vector n e) (Vector n e)
    where
-   fixedPeek p              = Vector <$> mallocDup (castPtr p)
-   fixedPoke p2 (Vector p1) = castPtr p1 `copy` p2
+   type SizeOf    (Vector n e) = SizeOf    (VectorLayout n e)
+   type Alignment (Vector n e) = Alignment (VectorLayout n e)
+   peekPtr p              = Vector <$> mallocDup (castPtr p)
+   pokePtr p2 (Vector p1) = castPtr p1 `copy` p2
 
 -- | Empty vector
 empty :: Vector 0 e
@@ -71,7 +69,7 @@ take (Vector p) = Vector (VL.vectorTake p (Proxy :: Proxy i))
 toList ::
    ( KnownNat n
    , KnownNat (SizeOf e)
-   , FixedStorable e e
+   , Storable e e
    ) => Vector n e -> [e]
 {-# NOINLINE toList #-}
 toList (Vector p) = unsafePerformIO $ VL.vectorPeekList p
@@ -80,7 +78,7 @@ toList (Vector p) = unsafePerformIO $ VL.vectorPeekList p
 fromList :: forall e n.
    ( KnownNat n
    , KnownNat (SizeOf e)
-   , FixedStorable e e
+   , Storable e e
    ) => [e] -> Maybe (Vector n e)
 {-# NOINLINE fromList #-}
 fromList xs 
@@ -95,7 +93,7 @@ fromList xs
 fromFilledList :: forall e n.
    ( KnownNat n
    , KnownNat (SizeOf e)
-   , FixedStorable e e
+   , Storable e e
    ) => e -> [e] -> Vector n e
 {-# NOINLINE fromFilledList #-}
 fromFilledList e es 
@@ -109,7 +107,7 @@ fromFilledList e es
 fromFilledListZ :: forall e n.
    ( KnownNat n
    , KnownNat (SizeOf e)
-   , FixedStorable e e
+   , Storable e e
    ) => e -> [e] -> Vector n e
 {-# NOINLINE fromFilledListZ #-}
 fromFilledListZ e es 
@@ -123,7 +121,7 @@ fromFilledListZ e es
 replicate :: forall n e.
    ( KnownNat n
    , KnownNat (SizeOf e)
-   , FixedStorable e e
+   , Storable e e
    ) => e -> Vector n e
 {-# NOINLINE replicate #-}
 replicate e

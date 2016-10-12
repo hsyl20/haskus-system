@@ -13,6 +13,7 @@ module ViperVM.Format.Binary.Layout.PackedStruct
 where
 
 import ViperVM.Format.Binary.Layout
+import ViperVM.Format.Binary.Storable
 import ViperVM.Utils.Types
 import ViperVM.Utils.Types.Generics
 

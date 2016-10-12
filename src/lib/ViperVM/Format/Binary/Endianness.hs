@@ -34,7 +34,6 @@ import ViperVM.Format.Binary.Enum
 import ViperVM.Format.Binary.Ptr
 import ViperVM.Format.Binary.Bits ((.|.), shiftL)
 import ViperVM.Format.Binary.Storable
-import ViperVM.Format.Binary.Layout
 import ViperVM.Format.Binary.Word
 
 import System.IO.Unsafe
@@ -182,26 +181,22 @@ data AsBigEndian a = AsBigEndian a deriving (Show,Eq,Ord)
 -- | Force a data to be read/stored as little-endian
 data AsLittleEndian a = AsLittleEndian a deriving (Show,Eq,Ord)
 
-instance MemoryLayout (AsBigEndian a) where
-   type SizeOf (AsBigEndian a)    = SizeOf a
-   type Alignment (AsBigEndian a) = Alignment a
-
-instance MemoryLayout (AsLittleEndian a) where
-   type SizeOf (AsLittleEndian a)    = SizeOf a
-   type Alignment (AsLittleEndian a) = Alignment a
+instance forall a.
+      ( ByteReversable a
+      , Storable a a
+      ) => Storable (AsBigEndian a) a
+   where
+      type SizeOf (AsBigEndian a)    = SizeOf a
+      type Alignment (AsBigEndian a) = Alignment a
+      peekPtr ptr   = bigEndianToHost <$> peekPtr (castPtr ptr :: Ptr a)
+      pokePtr ptr v = pokePtr (castPtr ptr :: Ptr a) (hostToBigEndian v)
 
 instance forall a.
       ( ByteReversable a
-      , FixedStorable a a
-      ) => FixedStorable (AsBigEndian a) a
+      , Storable a a
+      ) => Storable (AsLittleEndian a) a
    where
-      fixedPeek ptr   = bigEndianToHost <$> fixedPeek (castPtr ptr :: Ptr a)
-      fixedPoke ptr v = fixedPoke (castPtr ptr :: Ptr a) (hostToBigEndian v)
-
-instance forall a.
-      ( ByteReversable a
-      , FixedStorable a a
-      ) => FixedStorable (AsLittleEndian a) a
-   where
-      fixedPeek ptr   = bigEndianToHost <$> fixedPeek (castPtr ptr :: Ptr a)
-      fixedPoke ptr v = fixedPoke (castPtr ptr :: Ptr a) (hostToLittleEndian v)
+      type SizeOf (AsLittleEndian a)    = SizeOf a
+      type Alignment (AsLittleEndian a) = Alignment a
+      peekPtr ptr   = bigEndianToHost <$> peekPtr (castPtr ptr :: Ptr a)
+      pokePtr ptr v = pokePtr (castPtr ptr :: Ptr a) (hostToLittleEndian v)

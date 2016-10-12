@@ -46,10 +46,6 @@ type family StructFieldOffset' (fs :: [*]) (name :: Symbol) (sz :: Nat) where
       StructFieldOffset' fs name (sz + Padding sz typ + SizeOf typ)
 
 
-instance MemoryLayout (StructLayout fs) where
-   type SizeOf    (StructLayout fs) = SizeOfStruct fs
-   type Alignment (StructLayout fs) = StructAlignment fs 1
-
 -- | Struct size (with ending padding bytes)
 type family SizeOfStruct fs where
    SizeOfStruct fs =
@@ -89,12 +85,20 @@ type family PaddingEx (m :: Nat) (a :: Nat) where
    PaddingEx 0 a = 0
    PaddingEx m a = a - m
 
+-- newtype AsStruct a = AsStruct a
+-- 
+-- instance Struct a => Storable (AsStruct a) a where
+--    type SizeOf    (AsStruct a) = SizeOfStruct (ExtractFields a)
+--    type Alignment (AsStruct a) = StructAlignment (ExtractFields a) 1
+--    peekPtr = peekStruct
+--    pokePtr = undefined
+
 
 -- | Peek fields into structure pointed by p
 data PeekFields p = PeekFields p
 
 instance forall name t ts f p l.
-      ( FixedStorable t t
+      ( Storable t t
       , f ~ IO (t -> ts)
       , t ~ LayoutPathType l (LayoutPath '[LayoutSymbol name])
       , PtrLike p

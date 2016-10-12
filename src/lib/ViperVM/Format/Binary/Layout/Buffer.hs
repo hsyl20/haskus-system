@@ -109,26 +109,26 @@ import ViperVM.Utils.Memory
 -- 
 -- instance
 --    ( KnownNat (SizeOf (ComputePathType e '[]) * n)
---    ) => FixedStorable (Data (VectorLayout n e))
+--    ) => Storable (Data (VectorLayout n e))
 --    where
 --       type SizeOf (Data (VectorLayout n e))    = SizeOf (ComputePathType e '[]) * n
 --       type Alignment (Data (VectorLayout n e)) = Alignment (ComputePathType e '[])
 -- 
---       fixedPeek ptr = do
+--       peekPtr ptr = do
 --          let n = fromIntegral (natVal (Proxy :: Proxy (SizeOf (Data (VectorLayout n e)))))
 --          fp <- mallocForeignPtrBytes n
 --          withForeignPtr fp $ \ptr2 ->
 --             memCopy ptr ptr2 (fromIntegral n)
 --          return (Data fp)
 -- 
---       fixedPoke = undefined
+--       pokePtr = undefined
 -- 
 -- 
 -- readData :: forall l p.
---    ( FixedStorable (ComputePathType l p)
+--    ( Storable (ComputePathType l p)
 --    , KnownNat (ComputePathOffset 0 l p)
 --    ) => Path p -> Data l -> IO (ComputePathType l p)
--- readData _ (Data fp) = withForeignPtr fp (fixedPeek . castPtr . (`indexPtr` off))
+-- readData _ (Data fp) = withForeignPtr fp (peekPtr . castPtr . (`indexPtr` off))
 --    where
 --       off = fromIntegral (natVal (Proxy :: Proxy (ComputePathOffset 0 l p)))
 -- 
@@ -139,7 +139,7 @@ import ViperVM.Utils.Memory
 -- 
 -- 
 -- sliceData :: forall l p.
---    ( FixedStorable (ComputePathType l p)
+--    ( Storable (ComputePathType l p)
 --    , KnownNat (ComputePathOffset 0 l p)
 --    ) => Path p -> Data l -> SubData (RemoveData (ComputePathType l p))
 -- sliceData _ (Data fp) = SubData fp off
@@ -180,11 +180,11 @@ import ViperVM.Utils.Memory
 --             se = fromIntegral (natVal (Proxy :: Proxy (SizeOf e)))
 -- 
 -- readDynData :: forall l p e ps.
---    ( FixedStorable (ComputePathType l p)
+--    ( Storable (ComputePathType l p)
 --    , HFoldr' ReadDyn ([Word],[Word],Data l,Word) ps ([Word],[Word],Data e,Word)
 --    , e ~ ComputePathType l p
 --    ) => Path p -> DynData l -> IO (ComputePathType l p)
--- readDynData (Path ps) (DynData fp szs) = withForeignPtr fp (fixedPeek . castPtr . (`indexPtr` off))
+-- readDynData (Path ps) (DynData fp szs) = withForeignPtr fp (peekPtr . castPtr . (`indexPtr` off))
 --    where
 --       initFold     = (ps,szs,(undefined :: Data l),(0 :: Word))
 --       (_,_,_,off') = hFoldr' ReadDyn initFold (undefined :: HList ps) :: ([Word],[Word],Data e, Word)

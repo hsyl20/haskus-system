@@ -36,14 +36,17 @@ data TimeSpec = TimeSpec {
    tsNanoSeconds  :: {-# UNPACK #-} !Int64
 } deriving (Show,Eq,Ord,Generic)
 
-instance FixedStorable TimeSpec TimeSpec where
-   fixedPeek = peekStructCons TimeSpec
+instance Storable TimeSpec TimeSpec where
+   peekPtr = peekStructCons TimeSpec
 
 -- | Time val
 data TimeVal = TimeVal
    { tvSeconds       :: Word64
    , tvMicroSeconds  :: Word64
    } deriving (Show, Eq, Ord, Generic)
+
+instance Storable TimeVal TimeVal where
+   peekPtr = peekStructCons TimeVal
 
 -- | Timeval difference in microseconds
 timeValDiff :: TimeVal -> TimeVal -> Word64

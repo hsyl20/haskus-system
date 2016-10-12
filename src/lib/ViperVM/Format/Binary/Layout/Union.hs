@@ -12,6 +12,7 @@ module ViperVM.Format.Binary.Layout.Union
 where
 
 import ViperVM.Format.Binary.Layout
+import ViperVM.Format.Binary.Storable
 import ViperVM.Utils.Types.Generics
 import ViperVM.Utils.Types.List
 
@@ -22,9 +23,9 @@ type instance LayoutPathType (UnionLayout fs) (LayoutPath (LayoutSymbol s ': ps)
 
 type instance LayoutPathOffset (UnionLayout fs) (LayoutPath (LayoutSymbol s ': ps)) = LayoutPathOffset (FieldType fs s) (LayoutPath ps)
 
-instance MemoryLayout (UnionLayout fs) where
-   type SizeOf    (UnionLayout fs) = Max (MapSizeOf fs)
-   type Alignment (UnionLayout fs) = Max (MapAlignment fs)
+-- instance MemoryLayout (UnionLayout fs) where
+--    type SizeOf    (UnionLayout fs) = Max (MapSizeOf fs)
+--    type Alignment (UnionLayout fs) = Max (MapAlignment fs)
 
 type family MapSizeOf fs where
    MapSizeOf '[]                  = '[]

@@ -1,6 +1,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE TypeApplications #-}
 
 -- | A memory buffer with a fixed address
 --
@@ -73,7 +74,6 @@ import ViperVM.Format.Binary.Ptr
 import ViperVM.Format.Binary.Word
 import ViperVM.Format.Binary.Bits.Basic
 import ViperVM.Format.Binary.Storable
-import ViperVM.Format.Binary.Layout
 import ViperVM.Utils.Memory (memCopy,memSet)
 import ViperVM.Utils.Types
 
@@ -171,14 +171,14 @@ bufferSize (Buffer bs) =
 
 -- | Peek a storable
 bufferPeekStorable :: forall a.
-   ( FixedStorable a a
+   ( Storable a a
    , KnownNat (SizeOf a)
    ) => Buffer -> a
 bufferPeekStorable = snd . bufferPopStorable
 
 -- | Peek a storable at the given offset
 bufferPeekStorableAt :: forall a.
-   ( FixedStorable a a
+   ( Storable a a
    , KnownNat (SizeOf a)
    )
    => Buffer -> Word -> a
@@ -187,12 +187,12 @@ bufferPeekStorableAt b n
    | otherwise = unsafePerformIO $ withBufferPtr b $ \p ->
       peekByteOff p (fromIntegral n)
    where
-      sza = fromIntegral (layoutSizeOf (undefined :: a))
+      sza = sizeOf @a
    
 
 -- | Pop a Storable and return the new buffer
 bufferPopStorable :: forall a.
-   ( FixedStorable a a
+   ( Storable a a
    , KnownNat (SizeOf a)
    ) => Buffer -> (Buffer,a)
 bufferPopStorable buf
@@ -201,7 +201,7 @@ bufferPopStorable buf
          a <- withBufferPtr buf peek
          return (bufferDrop sza buf, a)
    where
-      sza = fromIntegral (layoutSizeOf (undefined :: a)) 
+      sza = sizeOf @a
 
 -- | Poke a buffer
 bufferPoke :: Ptr a -> Buffer -> IO ()
@@ -286,23 +286,23 @@ bufferPackByteList = Buffer . BS.pack
 
 -- | Pack a Storable
 bufferPackStorable :: forall a.
-   ( FixedStorable a a
+   ( Storable a a
    , KnownNat (SizeOf a)
    ) => a -> Buffer
 bufferPackStorable x = Buffer $ unsafePerformIO $ do
-   let sza = layoutSizeOf (undefined :: a)
+   let sza = sizeOf @a
    p <- mallocBytes (fromIntegral sza)
    poke p x
    BS.unsafePackMallocCStringLen (castPtr p, fromIntegral sza)
 
 -- | Pack a list of Storable
 bufferPackStorableList :: forall a.
-   ( FixedStorable a a
+   ( Storable a a
    , KnownNat (SizeOf a)
    ) => [a] -> Buffer
 bufferPackStorableList xs = Buffer $ unsafePerformIO $ do
    let 
-      sza = fromIntegral (layoutSizeOf (undefined :: a))
+      sza = fromIntegral (sizeOf @a)
       lxs = length xs
    p <- mallocBytes (fromIntegral (lxs * sza))
    forM_ (xs `zip` [0..]) $ \(x,o) ->

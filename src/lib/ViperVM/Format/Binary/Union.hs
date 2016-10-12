@@ -122,25 +122,22 @@ type family MapAlignment fs where
    MapAlignment (x ': xs) = Alignment x ': MapAlignment xs
 
 
-instance MemoryLayout (Union fs) where
-   type SizeOf (Union fs)    = Max (MapSizeOf fs)
-   type Alignment (Union fs) = Max (MapAlignment fs)
-
-
 instance forall fs.
       ( KnownNat (Max (MapSizeOf fs))
       , KnownNat (Max (MapAlignment fs))
       )
-      => FixedStorable (Union fs) (Union fs)
+      => Storable (Union fs) (Union fs)
    where
-      fixedPeek ptr = do
+      type SizeOf (Union fs)    = Max (MapSizeOf fs)
+      type Alignment (Union fs) = Max (MapAlignment fs)
+      peekPtr ptr = do
          let sz = fromIntegral $ natVal (Proxy :: Proxy (SizeOf (Union fs)))
          fp <- mallocForeignPtrBytes sz
          withForeignPtr fp $ \p -> 
             memCopy p (castPtr ptr) (fromIntegral sz)
          return (Union fp)
 
-      fixedPoke ptr (Union fp) = do
+      pokePtr ptr (Union fp) = do
          let sz = natVal (Proxy :: Proxy (SizeOf (Union fs)))
          withForeignPtr fp $ \p ->
             memCopy (castPtr ptr) p (fromIntegral sz)

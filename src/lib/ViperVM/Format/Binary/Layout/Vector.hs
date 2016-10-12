@@ -41,9 +41,9 @@ type instance LayoutPathOffset (VectorLayout n e) (LayoutPath (LayoutIndex i ': 
       (SizeOf e * i + (LayoutPathOffset e (LayoutPath ps)))
    --   OutOfBound
 
-instance MemoryLayout (VectorLayout n e) where
-   type SizeOf    (VectorLayout n e) = n * SizeOf e
-   type Alignment (VectorLayout n e) = Alignment e
+-- instance MemoryLayout (VectorLayout n e) where
+--    type SizeOf    (VectorLayout n e) = n * SizeOf e
+--    type Alignment (VectorLayout n e) = Alignment e
 
 -- | Offset of the i-th element in a stored vector
 type family ElemOffset a n where
@@ -82,7 +82,7 @@ vectorDrop p i = vectorSlice p i (Proxy :: Proxy m)
 -- | Convert a vector into a list
 vectorPeekList :: forall n e p.
    ( KnownNat n
-   , FixedStorable e e
+   , Storable e e
    , KnownNat (SizeOf e)
    , PtrLike p
    ) => p (VectorLayout n e) -> IO [e]
@@ -96,7 +96,7 @@ vectorPeekList p
 -- | Convert a list into a vector if the number of elements matches
 vectorPokeList :: forall n e p.
    ( KnownNat n
-   , FixedStorable e e
+   , Storable e e
    , KnownNat (SizeOf e)
    , PtrLike p
    ) => p (VectorLayout n e) -> [e] -> IO ()
@@ -109,7 +109,7 @@ vectorPokeList p vs =
 -- | Convert a list into a vector (don't check list size)
 unsafeVectorPokeList :: forall n e p.
    ( KnownNat n
-   , FixedStorable e e
+   , Storable e e
    , KnownNat (SizeOf e)
    , PtrLike p
    ) => p (VectorLayout n e) -> [e] -> IO ()
@@ -119,7 +119,7 @@ unsafeVectorPokeList p vs = pokeArray (castPtr p) vs
 -- | Take at most n element from the list, then use z
 vectorPokeFilledList :: forall n e p.
    ( KnownNat n
-   , FixedStorable e e
+   , Storable e e
    , KnownNat (SizeOf e)
    , PtrLike p
    ) => p (VectorLayout n e) -> e -> [e] -> IO ()
@@ -132,7 +132,7 @@ vectorPokeFilledList p z v = pokeArray (castPtr p) vs
 -- | Take at most (n-1) element from the list, then use z
 vectorPokeFilledListZ :: forall n e p.
    ( KnownNat n
-   , FixedStorable e e
+   , Storable e e
    , KnownNat (SizeOf e)
    , PtrLike p
    ) => p (VectorLayout n e) -> e -> [e] -> IO ()
@@ -144,7 +144,7 @@ vectorPokeFilledListZ p z v = vectorPokeFilledList p z vs
 -- | Create a vector by replicating a value
 vectorFill :: forall n e p.
    ( KnownNat n
-   , FixedStorable e e
+   , Storable e e
    , KnownNat (SizeOf e)
    , PtrLike p
    ) => p (VectorLayout n e) -> e -> IO ()
@@ -162,7 +162,7 @@ vectorFill p z = vectorPokeFilledList p z []
 --    , KnownNat (SizeOf a)
 --    , s ~ ElemOffset a n
 --    , KnownNat s
---    , FixedStorable a a
+--    , Storable a a
 --    ) => Apply StoreVector (v, IO (Ptr a)) r where
 --       apply _ (v, getP) = do
 --          p <- getP
@@ -180,12 +180,12 @@ vectorFill p z = vectorPokeFilledList p z []
 -- concat :: forall l (n :: Nat) a .
 --    ( n ~ WholeSize l
 --    , KnownNat n
---    , FixedStorable a a
+--    , Storable a a
 --    , HFoldr StoreVector (IO (Ptr a)) l (IO (Ptr a))
 --    )
 --    => HList l -> Vector n a
 -- concat vs = unsafePerformIO $ do
---    let sz = layoutSizeOf (undefined :: a) * fromIntegral (natVal (Proxy :: Proxy n))
+--    let sz = sizeOf @a * natValue @n
 --    p <- mallocBytes sz :: IO (Ptr ())
 --    _ <- hFoldr StoreVector (return (castPtr p `indexPtr` sz) :: IO (Ptr a)) vs :: IO (Ptr a)
 --    Vector <$> bufferUnsafePackPtr (fromIntegral sz) p

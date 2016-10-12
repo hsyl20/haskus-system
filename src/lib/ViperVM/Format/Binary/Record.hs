@@ -127,12 +127,12 @@ recordField :: forall name a fs o.
    ( o ~ FieldOffset name fs 0
    , a ~ FieldType name fs
    , KnownNat o
-   , FixedStorable a a
+   , Storable a a
    ) => Proxy (name :: Symbol) -> Record fs -> a
 recordField p r@(Record fp) = unsafePerformIO $
    withForeignPtr fp $ \ptr ->do
       let ptr' = ptr `indexPtr` recordFieldOffset p r
-      fixedPeek (castPtr ptr' :: Ptr a)
+      peekPtr (castPtr ptr' :: Ptr a)
 
 data Path (fs :: [*])
 
@@ -150,14 +150,14 @@ recordFieldPath :: forall path a fs o.
    ( o ~ FieldPathOffset fs path 0
    , a ~ FieldPathType fs path
    , KnownNat o
-   , FixedStorable a a
+   , Storable a a
    ) => Path path -> Record fs -> a
 recordFieldPath _ (Record fp) = unsafePerformIO $
    withForeignPtr fp $ \ptr -> do
       let
          o    = fromIntegral (natVal (Proxy :: Proxy o))
          ptr' = ptr `indexPtr` o
-      fixedPeek (castPtr ptr' :: Ptr a)
+      peekPtr (castPtr ptr' :: Ptr a)
 
 -- | Compute the required padding between a and b to respect b's alignment
 type family RequiredPadding a b where
@@ -171,25 +171,22 @@ type family PaddingEx (m :: Nat) (a :: Nat) where
    PaddingEx 0 a = 0
    PaddingEx m a = a - m
 
-instance MemoryLayout (Record fs) where
-   type SizeOf (Record fs)    = FullRecordSize fs
-   type Alignment (Record fs) = RecordAlignment fs 1
-
-
 instance forall fs s.
       ( s ~ FullRecordSize fs
       , KnownNat s
       )
-      => FixedStorable (Record fs) (Record fs)
+      => Storable (Record fs) (Record fs)
    where
-      fixedPeek ptr = do
+      type SizeOf (Record fs)    = FullRecordSize fs
+      type Alignment (Record fs) = RecordAlignment fs 1
+      peekPtr ptr = do
          let sz = recordSize (undefined :: Record fs)
          fp <- mallocForeignPtrBytes (fromIntegral sz)
          withForeignPtr fp $ \p ->
             memCopy p ptr (fromIntegral sz)
          return (Record fp)
 
-      fixedPoke ptr (Record fp) = do
+      pokePtr ptr (Record fp) = do
          let sz = recordSize (undefined :: Record fs)
          withForeignPtr fp $ \p ->
             memCopy ptr p (fromIntegral sz)
@@ -203,7 +200,7 @@ instance forall fs typ name rec b l2 i r.
    , i ~ (rec, HList l2)                    -- input type
    , typ ~ FieldType name fs
    , KnownNat (FieldOffset name fs 0)
-   , FixedStorable typ typ
+   , Storable typ typ
    , KnownSymbol name
    , r ~ (rec, HList ((String,typ) ': l2))  -- result type
    ) => Apply Extract (b, i) r where
