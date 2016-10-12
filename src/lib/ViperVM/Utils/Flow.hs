@@ -29,6 +29,9 @@ module ViperVM.Utils.Flow
    , (<|)
    , (||>)
    , (<||)
+   -- * Monadic flow
+   , (<=<)
+   , (>=>)
    -- * Named operators
    , flowMap
    , flowBind
@@ -150,6 +153,7 @@ where
 import ViperVM.Utils.Variant
 import ViperVM.Utils.Types
 import ViperVM.Utils.Types.List
+import Control.Monad ((<=<), (>=>))
 
 -- | Control-flow
 type Flow m (l :: [*]) = m (Variant l)
