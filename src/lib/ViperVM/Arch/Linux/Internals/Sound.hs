@@ -1,5 +1,4 @@
 {-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DataKinds #-}
 
 module ViperVM.Arch.Linux.Internals.Sound
@@ -172,10 +171,6 @@ module ViperVM.Arch.Linux.Internals.Sound
    )
 where
 
-import Foreign.CStorable
-import Foreign.Storable
-import GHC.Generics (Generic)
-
 import ViperVM.Format.Binary.Vector (Vector)
 import ViperVM.Format.Binary.Union
 import ViperVM.Format.Binary.Word
@@ -183,7 +178,9 @@ import ViperVM.Format.Binary.Ptr
 import ViperVM.Format.Binary.BitSet
 import ViperVM.Format.Binary.Enum
 import ViperVM.Format.Binary.Bits
+import ViperVM.Format.Binary.Storable
 import ViperVM.Format.String
+import ViperVM.Utils.Types.Generics
 import ViperVM.Arch.Linux.Ioctl
 import ViperVM.Arch.Linux.ErrorCode
 import ViperVM.Arch.Linux.Handle
@@ -201,7 +198,7 @@ data AesIec958 = AesIec958
    , aesSubcode     :: Vector 147 Word8 -- ^ AES/IEC958 subcode bits
    , aesPadding     :: CChar            -- ^ nothing
    , aesDigSubFrame :: Vector 4 Word8   -- ^ AES/IEC958 subframe bits
-   } deriving (Generic, Show, CStorable)
+   } deriving (Generic, Show)
 
 instance Storable AesIec958 where
    peek      = cPeek
@@ -220,7 +217,7 @@ data Cea861AudioInfoFrame = Cea861AudioInfoFrame
    , ceaUnused                 :: Word8 -- ^ not used, all zeros
    , ceaChannelAllocationCode  :: Word8 -- ^ channel allocation code
    , ceaDownmixLevelShift      :: Word8 -- ^ downmix inhibit & level-shit values
-   } deriving (Generic, Show, CStorable)
+   } deriving (Generic, Show)
 
 instance Storable Cea861AudioInfoFrame where
    peek      = cPeek
@@ -270,7 +267,7 @@ data HwInfo = HwInfo
    , hwInfoName      :: CStringBuffer 80 -- ^ hwdep name
    , hwInfoInterface :: Int              -- ^ hwdep interface
    , hwInfoReserved  :: Vector 64 Word8  -- ^ reserved for future
-   } deriving (Generic, Show, CStorable)
+   } deriving (Generic, Show)
 
 instance Storable HwInfo where
    peek      = cPeek
@@ -286,7 +283,7 @@ data HwDspStatus = HwDspStatus
    , hwDspLoadedDsps :: Word             -- ^ R: bit flags indicating the loaded DSPs
    , hwDspChipReady  :: Word             -- ^ R: 1 = initialization finished
    , hwDspReserved   :: Vector 16 Word8  -- ^ reserved for future use
-   } deriving (Generic, Show, CStorable)
+   } deriving (Generic, Show)
 
 instance Storable HwDspStatus where
    peek      = cPeek
@@ -300,7 +297,7 @@ data HwDspImage = HwDspImage
    , hwDspImageBin        :: Ptr ()           -- ^ W: binary image
    , hwDspImageLength     :: CSize            -- ^ W: size of image in bytes
    , hwDspImageDriverData :: Word64           -- ^ W: driver-specific data
-   } deriving (Generic, Show, CStorable)
+   } deriving (Generic, Show)
 
 instance Storable HwDspImage where
    peek      = cPeek
@@ -632,7 +629,7 @@ data PcmInfo = PcmInfo
    , pcmInfoSubDevicesAvailabled :: Word
    , pcmInfoSync                 :: Vector 16 Word8  -- ^ hardware synchronization ID
    , pcmInfoReserved             :: Vector 64 Word8  -- ^ reserved for future...
-   } deriving (Generic, Show, CStorable)
+   } deriving (Generic, Show)
 
 instance Storable PcmInfo where
    peek      = cPeek
@@ -697,7 +694,7 @@ data Interval = Interval
    { intervalMin :: Word
    , intervalMax :: Word
    , intervalOptions :: IntervalOptions
-   } deriving (Show,Eq,Generic,CStorable)
+   } deriving (Show,Eq,Generic)
 
 instance Storable Interval where
    peek      = cPeek
@@ -724,7 +721,7 @@ type PcmHwParamsFlags = BitSet Word PcmHwParamsFlag
 
 data Mask = Mask
    { maskBits :: Vector 8 Word32
-   } deriving (Generic,CStorable,Show)
+   } deriving (Generic,Show)
 
 instance Storable Mask where
    peek      = cPeek
@@ -744,7 +741,7 @@ data PcmHwParams = PcmHwParams
    , pcmHwParamsRateDenominator     :: Word               -- ^ R: rate denominator
    , pcmHwParamsFifoSize            :: Word64             -- ^ R: chip FIFO size in frames
    , pcmHwParamsReserved            :: Vector 64 Word8    -- ^ reserved for future
-   } deriving (Generic, CStorable, Show)
+   } deriving (Generic, Show)
 
 instance Storable PcmHwParams where
    peek      = cPeek
@@ -772,7 +769,7 @@ data PcmSwParams = PcmSwParams
    , pcmSwParamsProtoVersion     :: Word            -- ^ protocol version
    , pcmSwParamsTimeStampType    :: Word            -- ^ timestamp type (req. proto >= 2.0.12)
    , pcmSwParamsReserved         :: Vector 56 Word8 -- ^ reserved for future
-   } deriving (Generic, CStorable, Show)
+   } deriving (Generic, Show)
 
 instance Storable PcmSwParams where
    peek      = cPeek
@@ -786,7 +783,7 @@ data PcmChannelInfo = PcmChannelInfo
    , pcmChannelInfoOffset  :: Int64 -- ^ mmap offset
    , pcmChannelInfoFirst   :: Word  -- ^ offset to first sample in bits
    , pcmChannelInfoStep    :: Word  -- ^ samples distance in bits
-   } deriving (Show,Generic,CStorable)
+   } deriving (Show,Generic)
 
 instance Storable PcmChannelInfo where
    peek      = cPeek
@@ -819,7 +816,7 @@ data PcmStatus = PcmStatus
    , pcmStatusDriverTimeStamp    :: TimeSpec        -- ^ useful in case reference system tstamp is reported with delay
    , pcmStatusTimeStampAccuracy  :: Word32          -- ^ in ns units, only valid if indicated in audio_tstamp_data
    , pcmStatusReserved           :: Vector 20 Word8 -- ^ must be filled with zero
-   } deriving (Show,Generic,CStorable)
+   } deriving (Show,Generic)
 
 instance Storable PcmStatus where
    peek      = cPeek
@@ -835,7 +832,7 @@ data PcmMmapStatus = PcmMmapStatus
    , pcmMmapStatusTimeStamp      :: TimeSpec -- ^ Timestamp
    , pcmMmapStatusSuspendedState :: PcmStateField -- ^ RO: suspended stream state
    , pcmMmapStatusAudioTimeStamp :: TimeSpec -- ^ from sample counter or wall clock
-   } deriving (Show,Generic,CStorable)
+   } deriving (Show,Generic)
 
 instance Storable PcmMmapStatus where
    peek      = cPeek
@@ -846,7 +843,7 @@ instance Storable PcmMmapStatus where
 data PcmMmapControl = PcmMmapControl
    { pcmMmapControlApplPtr  :: Word64  -- ^ RW: appl ptr (0...boundary-1)
    , pcmMmapControlAvailMin :: Word64  -- ^ RW: min available frames for wakeup
-   } deriving (Show,Generic,CStorable)
+   } deriving (Show,Generic)
 
 instance Storable PcmMmapControl where
    peek      = cPeek
@@ -867,7 +864,7 @@ data PcmSyncPtr = PcmSyncPtr
    , pcmSyncPtrStatus :: PcmMmapStatus
    , pcmSyncPtrControl   :: PcmMmapControl
    , pcmSyncPtrPadding :: Vector 48 Word8
-   } deriving (Show, Generic, CStorable)
+   } deriving (Show, Generic)
 
 instance Storable PcmSyncPtr where
    peek      = cPeek
@@ -880,7 +877,7 @@ data XferI = XferI
    { xferiResult :: Int64
    , xferiBuffer :: Ptr ()
    , xferiFrames :: Word64
-   } deriving (Show, Generic, CStorable)
+   } deriving (Show, Generic)
 
 instance Storable XferI where
    peek      = cPeek
@@ -892,7 +889,7 @@ data XferN = XferN
    { xfernResult  :: Int64
    , xfernBuffers :: Ptr (Ptr ())
    , xfernFrames  :: Word64
-   } deriving (Show, Generic, CStorable)
+   } deriving (Show, Generic)
 
 instance Storable XferN where
    peek      = cPeek
@@ -1098,7 +1095,7 @@ data MidiInfo = MidiInfo
    , midiInfoSubDeviceCount :: Word
    , midiInfoSubDeviceAvail :: Word
    , midiInfoReserved       :: Vector 64 Word8  -- ^ reserved for future use
-   } deriving (Show, Generic, CStorable)
+   } deriving (Show, Generic)
 
 instance Storable MidiInfo where
    peek      = cPeek
@@ -1112,7 +1109,7 @@ data MidiParams = MidiParams
    , midiParamsAvailMin        :: CSize           -- ^ minimum avail bytes for wakeup
    , midiParamsNoActiveSensing :: Word            -- ^ do not send active sensing byte in close()
    , midiParamsReserved        :: Vector 16 Word8 -- ^ reserved for future use
-   } deriving (Show, Generic, CStorable)
+   } deriving (Show, Generic)
 
 instance Storable MidiParams where
    peek      = cPeek
@@ -1126,7 +1123,7 @@ data MidiStatus = MidiStatus
    , midiStatusAvail     :: CSize           -- ^ available bytes
    , midiStatusXRuns     :: CSize           -- ^ count of overruns since last status (in bytes)
    , midiStatusReserved  :: Vector 16 Word8 -- ^ reserved for future use
-   } deriving (Show, Generic, CStorable)
+   } deriving (Show, Generic)
 
 instance Storable MidiStatus where
    peek      = cPeek
@@ -1224,7 +1221,7 @@ data TimerId = TimerId
    , timerIdCard           :: Int
    , timerIdDevice         :: Int
    , timerIdSubDevice      :: Int
-   } deriving (Show,Generic,CStorable)
+   } deriving (Show,Generic)
 
 instance Storable TimerId where
    peek      = cPeek
@@ -1245,7 +1242,7 @@ data TimerGInfo = TimerGInfo
    , timerGInfoResolutionMax :: Word64           -- ^ maximal period resolution in ns
    , timerGInfoClients       :: Word             -- ^ active timer clients
    , timerGInfoReserved2     :: Vector 32 Word8
-   } deriving (Show,Generic,CStorable)
+   } deriving (Show,Generic)
 
 instance Storable TimerGInfo where
    peek      = cPeek
@@ -1258,7 +1255,7 @@ data TimerGParams = TimerGParams
    , timerGParamsPeriodNumerator  :: Word64         -- ^ requested precise period duration (in seconds) - numerator
    , timerGParamsPeriodDenomintor :: Word64         -- ^ requested precise period duration (in seconds) - denominator
    , timerGParamsReserved         :: Vector 32 Word8
-   } deriving (Show,Generic,CStorable)
+   } deriving (Show,Generic)
 
 instance Storable TimerGParams where
    peek      = cPeek
@@ -1272,7 +1269,7 @@ data TimerGStatus = TimerGStatus
    , timerGStatusResolutionNumerator   :: Word64          -- ^ precise current period resolution (in seconds) - numerator
    , timerGStatusResolutionDenominator :: Word64          -- ^ precise current period resolution (in seconds) - denominator
    , timerGStatusReserved              :: Vector 32 Word8
-   } deriving (Show,Generic,CStorable)
+   } deriving (Show,Generic)
 
 instance Storable TimerGStatus where
    peek      = cPeek
@@ -1284,7 +1281,7 @@ instance Storable TimerGStatus where
 data TimerSelect = TimerSelect
    { timerSelectTimerId  :: TimerId         -- ^ bind to timer ID
    , timerSelectReserved :: Vector 32 Word8 -- ^ reserved
-   } deriving (Show,Generic,CStorable)
+   } deriving (Show,Generic)
 
 instance Storable TimerSelect where
    peek      = cPeek
@@ -1301,7 +1298,7 @@ data TimerInfo = TimerInfo
    , timerInfoReserved   :: Word64           -- ^ reserved for future use
    , timerInfoResolution :: Word64           -- ^ average period resolution in ns
    , timerInfoReserved2  :: Vector 64 Word8
-   } deriving (Show,Generic,CStorable)
+   } deriving (Show,Generic)
 
 instance Storable TimerInfo where
    peek      = cPeek
@@ -1325,7 +1322,7 @@ data TimerParams = TimerParams
    , timerParamsReserved  :: Word             -- ^ reserved, was: failure locations
    , timerParamsFilter    :: Word             -- ^ event filter (bitmask of SNDRV_TIMER_EVENT_*)
    , timerParamsReserved2 :: Vector 60 Word8  -- ^ reserved
-   } deriving (Show,Generic,CStorable)
+   } deriving (Show,Generic)
 
 instance Storable TimerParams where
    peek      = cPeek
@@ -1340,7 +1337,7 @@ data TimerStatus = TimerStatus
    , timerStatusOverrun    :: Word            -- ^ count of read queue overruns
    , timerStatusQueue      :: Word            -- ^ used queue size
    , timerStatusReserved   :: Vector 64 Word8 -- ^ reserved
-   } deriving (Show,Generic,CStorable)
+   } deriving (Show,Generic)
 
 instance Storable TimerStatus where
    peek      = cPeek
@@ -1405,7 +1402,7 @@ ioctlTimerPause = timerIoctl 0xa3
 data TimerRead = TimerRead
    { timerReadResolution :: Word
    , timerReadTicks      :: Word
-   } deriving (Show,Generic,CStorable)
+   } deriving (Show,Generic)
 
 instance Storable TimerRead where
    peek      = cPeek
@@ -1471,7 +1468,7 @@ data TimerTRead = TimerTRead
    { timerTReadEvent     :: Int
    , timerTReadTimeStamp :: TimeSpec
    , timerTReadValue     :: Word
-   } deriving (Show,Generic,CStorable)
+   } deriving (Show,Generic)
 
 instance Storable TimerTRead where
    peek      = cPeek
@@ -1496,7 +1493,7 @@ data ControlCardInfo = ControlCardInfo
    , controlCardInfoReserved   :: Vector 16 Word8   -- ^ reserved for future (was ID of mixer)
    , controlCardInfoMixerName  :: CStringBuffer 80  -- ^ visual mixer identification
    , controlCardInfoComponents :: CStringBuffer 128 -- ^ card components / fine identification, delimited with one space (AC97 etc..)
-   } deriving (Show,Generic,CStorable)
+   } deriving (Show,Generic)
 
 instance Storable ControlCardInfo where
    peek      = cPeek
@@ -1590,7 +1587,7 @@ data ControlElementId = ControlElementId
    , controlElemIdSubDevice :: Word             -- ^ subdevice (substream) number
    , controlElemIdName      :: CStringBuffer 44 -- ^ ASCII name of item
    , controlElemIdIndex     :: Word             -- ^ index of item
-   } deriving (Show,Generic,CStorable)
+   } deriving (Show,Generic)
 
 instance Storable ControlElementId where
    peek      = cPeek
@@ -1606,7 +1603,7 @@ data ControlElementList = ControlElementList
    , controlElemListCount    :: Word            -- ^ R: count of all elements
    , controlElemListPids     :: Ptr ()          -- ^ R: IDs
    , controlElemListReserved :: Vector 50 Word8
-   } deriving (Show,Generic,CStorable)
+   } deriving (Show,Generic)
 
 instance Storable ControlElementList where
    peek      = cPeek
@@ -1619,7 +1616,7 @@ data IntegerValue = IntegerValue
    { integerValueMin  :: Word32 -- ^ R: minimum value
    , integerValueMax  :: Word32 -- ^ R: maximum value
    , integerValueStep :: Word32 -- ^ R: step (0 variable)
-   } deriving (Show,Generic,CStorable)
+   } deriving (Show,Generic)
 
 instance Storable IntegerValue where
    peek      = cPeek
@@ -1631,7 +1628,7 @@ data Integer64Value = Integer64Value
    { integer64ValueMin  :: Word64 -- ^ R: minimum value
    , integer64ValueMax  :: Word64 -- ^ R: maximum value
    , integer64ValueStep :: Word64 -- ^ R: step (0 variable)
-   } deriving (Show,Generic,CStorable)
+   } deriving (Show,Generic)
 
 instance Storable Integer64Value where
    peek      = cPeek
@@ -1645,7 +1642,7 @@ data EnumeratedValue = EnumeratedValue
    , enumeratedName     :: CStringBuffer 64 -- ^ R: value name
    , enumeratedNamesPtr :: Word64           -- ^ W: names list (ELEM_ADD only)
    , enumeratedNamesLength :: Word
-   } deriving (Show,Generic,CStorable)
+   } deriving (Show,Generic)
 
 instance Storable EnumeratedValue where
    peek      = cPeek
@@ -1661,7 +1658,7 @@ data ControlElementInfo = ControlElementInfo
    , controlElemInfoOwner :: ProcessID
    , controlElemInfoValue :: Union '[IntegerValue,Integer64Value,EnumeratedValue,Vector 128 Word8]
    , controlElemInfoDimensions :: Vector 4 Word16
-   } deriving (Show,Generic,CStorable)
+   } deriving (Show,Generic)
 
 
 instance Storable ControlElementInfo where
@@ -1676,7 +1673,7 @@ data ControlElementValue = ControlElementValue
    , controlElemValueValue     :: Union '[Vector 512 Word8,AesIec958]
    , controlElemValueTimeStamp :: TimeSpec
    , controlElemValueReserved  :: Vector 112 Word8
-   } deriving (Show,Generic,CStorable)
+   } deriving (Show,Generic)
 
 instance Storable ControlElementValue where
    peek      = cPeek
@@ -1690,7 +1687,7 @@ data ControlTLV = ControlTLV
    , controlTlvLength :: Word          -- ^ in bytes aligned to 4
    , controlTlvTlv    :: Vector 0 Word -- ^ first TLV
    -- FIXME: the array is allocated "after" the struct...
-   } deriving (Show,Generic,CStorable)
+   } deriving (Show,Generic)
 
 instance Storable ControlTLV where
    peek      = cPeek
@@ -1818,10 +1815,4 @@ data ControlEvent = ControlEvent
    { controlEventType   :: Int
    , controlEventMask   :: Word
    , controlEventElemId :: ControlElementId
-   } deriving (Show,Generic,CStorable)
-
-instance Storable ControlEvent where
-   peek      = cPeek
-   poke      = cPoke
-   alignment = cAlignment
-   sizeOf    = cSizeOf
+   } deriving (Show,Generic)

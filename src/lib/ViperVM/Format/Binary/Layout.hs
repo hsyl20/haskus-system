@@ -20,8 +20,6 @@ module ViperVM.Format.Binary.Layout
    , layoutSymbol
    , (:->)
    , (:#>)
-   , MemoryLayout (..)
-   , WithLayout (..)
    )
 where
 
@@ -62,29 +60,3 @@ type family (:->) p (s :: Symbol) where
 
 type family (:#>) p (n :: Nat) where
    (:#>) (LayoutPath xs) n = LayoutPath (Snoc xs (LayoutIndex n))
-
-
-
-class MemoryLayout r where
-   -- | Size of the stored data (in bytes)
-   type SizeOf r    :: Nat
-
-   -- | Alignment requirement (in bytes)
-   type Alignment r :: Nat
-
-
--- | Explicit layout
-newtype WithLayout (r :: * -> *) e
-   = WithLayout { unLayout :: e}
-   deriving (Show,Eq,Ord)
-
-type instance LayoutPathType (WithLayout r e) (LayoutPath (p ': ps))
-   = LayoutPathType (r e) (LayoutPath (p ': ps))
-
-type instance LayoutPathOffset (WithLayout r e) (LayoutPath (p ': ps))
-   = LayoutPathOffset (r e) (LayoutPath (p ': ps))
-
-instance MemoryLayout (WithLayout r e) where
-   type SizeOf    (WithLayout r e) = SizeOf (r e)
-   type Alignment (WithLayout r e) = Alignment (r e)
-

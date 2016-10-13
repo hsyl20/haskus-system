@@ -23,8 +23,6 @@ module ViperVM.Arch.Linux.Network
    )
 where
 
-import Foreign.Marshal.Utils (with)
-import Foreign.Marshal.Array (peekArray,allocaArray)
 import Data.List (foldl')
 
 import ViperVM.Utils.Types.Generics (Generic)
@@ -33,6 +31,7 @@ import ViperVM.Arch.Linux.Handle
 import ViperVM.Arch.Linux.Syscalls
 import ViperVM.Format.Binary.Word
 import ViperVM.Format.Binary.Bits
+import ViperVM.Format.Binary.Storable
 import ViperVM.Format.Binary.Ptr (nullPtr)
 
 data ShutFlag
@@ -277,13 +276,13 @@ sysSocketPair typ opts =
       SockTypeNetlink nt -> sysSocketPair' SockRawTypeDatagram SockProtNETLINK (fromEnum nt) opts
 
 -- | Bind a socket
-sysBind :: Storable a => Handle -> a -> SysRet ()
+sysBind :: Storable a a => Handle -> a -> SysRet ()
 sysBind (Handle fd) addr =
    with addr $ \addr' ->
       onSuccess (syscall_bind fd addr' (sizeOf addr)) (const ())
 
 -- | Connect a socket
-sysConnect :: Storable a => Handle -> a -> SysRet ()
+sysConnect :: Storable a a => Handle -> a -> SysRet ()
 sysConnect (Handle fd) addr =
    with addr $ \addr' ->
       onSuccess (syscall_connect fd addr' (sizeOf addr)) (const ())
@@ -292,7 +291,7 @@ sysConnect (Handle fd) addr =
 --
 -- We use accept4 (288) instead of accept (43) to support socket options
 --
-sysAccept :: Storable a => Handle -> a -> [SocketOption] -> SysRet Handle
+sysAccept :: Storable a a => Handle -> a -> [SocketOption] -> SysRet Handle
 sysAccept (Handle fd) addr opts =
    let 
       f :: Enum a => a -> Word64
@@ -311,15 +310,12 @@ sysListen (Handle fd) backlog =
 
 
 -- | Netlink socket binding
-data NetlinkSocket
-   = NetlinkSocket Word32 Word32 Word32
-   deriving (Generic, CStorable)
+data NetlinkSocket = NetlinkSocket
+   { netlinkSocketType   :: Word32
+   , netlinkSocketPort   :: Word32
+   , netlinksocketGroups :: Word32
+   } deriving (Generic)
 
-instance Storable NetlinkSocket where
-   sizeOf    = cSizeOf
-   alignment = cAlignment
-   peek      = cPeek
-   poke      = cPoke
 
 -- | Bind a netlink socket
 --

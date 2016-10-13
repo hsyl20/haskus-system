@@ -2,10 +2,14 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE StandaloneDeriving #-}
-{-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 -- | ISO 9660 / ECMA-119
 --
@@ -39,10 +43,10 @@ import ViperVM.Format.Binary.Enum
 import ViperVM.Format.Binary.Endianness
 import ViperVM.Format.Binary.Word
 import ViperVM.Format.Binary.Ptr
+import ViperVM.Format.Binary.Storable
 import ViperVM.Format.String
-
-import GHC.Generics
-import GHC.TypeLits
+import ViperVM.Utils.Types
+import ViperVM.Utils.Types.Generics
 
 -- | String with characters: A-Z 0-9 _ * " % & ' ( ) * + , - . / : ; < = > ?
 newtype StringA (n :: Nat) = StringA (CStringBuffer n) deriving (Show,Generic)
@@ -65,14 +69,22 @@ data DateTime = DateTime
    , dateTimeZone                :: Word8     -- ^ Time zone offset from GMT in 15 minute intervals, starting at interval -48 (west) and running up to interval 52 (east). So value 0 indicates interval -48 which equals GMT-12 hours, and value 100 indicates interval 52 which equals GMT+13 hours.
    } deriving (Show,Generic)
 
-instance (ByteReversable w, Storable w) => Storable (BothEndian w) where
-   sizeOf _              = 2 * (sizeOf (undefined :: w))
-   alignment _           = alignment (undefined :: w)
-   peek p                = (BothEndian . littleEndianToHost) <$> peek (castPtr p)
-   poke p (BothEndian v) = do
-      let s = sizeOf (undefined :: w)
-      pokeByteOff (castPtr p) 0 (hostToLittleEndian v)
-      pokeByteOff (castPtr p) s (hostToBigEndian v)
+instance MemoryLayout (BothEndian w) where
+   type SizeOf    (BothEndian w) = 2 * SizeOf w
+   type Alignment (BothEndian w) = Alignment w
+
+instance
+      ( Storable (AsLittleEndian w) w
+      , Storable (AsBigEndian w) w
+      , KnownNat (SizeOf w)
+      ) => Storable (BothEndian w) (BothEndian w)
+   where
+   -- we only peek the first value (little-endian)
+   peekPtr p = BothEndian <$> peek (castPtr p :: Ptr (AsLittleEndian w))
+   pokePtr p (BothEndian w) = do
+      let s = natValue @(SizeOf w)
+      pokeByteOff (castPtr p :: Ptr (AsLittleEndian w)) 0 w
+      pokeByteOff (castPtr p :: Ptr (AsBigEndian w))    s w
 
 
 -- | Volume Descriptor header

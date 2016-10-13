@@ -41,8 +41,8 @@ writeStrLn fd = writeBuffer fd . stringEncodeUtf8 . (++ "\n")
 
 -- | Read a single character
 --
--- Warning: only the first byte of multi-byte characters (e.g. utf8) will be
+-- FIXME: only the first byte of multi-byte characters (e.g. utf8) will be
 -- read
 readChar :: Handle -> SysRet Char
 readChar fd = handleReadBuffer fd Nothing 1
-   >.-.> (castCCharToChar . bufferPeekStorable)
+   >.-.> (castWord8ToChar . bufferPeekStorable)

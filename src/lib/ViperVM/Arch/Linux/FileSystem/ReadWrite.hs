@@ -1,7 +1,7 @@
 {-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeApplications #-}
 
 -- | Read/write
 module ViperVM.Arch.Linux.FileSystem.ReadWrite
@@ -22,34 +22,28 @@ module ViperVM.Arch.Linux.FileSystem.ReadWrite
    )
 where
 
-import Foreign.CStorable
-import Foreign.Marshal.Alloc
-import Foreign.Marshal.Array (withArray)
-import Foreign.Storable (Storable, peek, poke, sizeOf, alignment)
-
-import GHC.Generics (Generic)
-
-import ViperVM.Format.Binary.Ptr (Ptr, castPtr, indexPtr)
+import ViperVM.Format.Binary.Ptr
 import ViperVM.Format.Binary.Word (Word64, Word32)
 import ViperVM.Format.Binary.Bits (shiftR)
 import ViperVM.Format.Binary.Buffer
+import ViperVM.Format.Binary.Storable
+import ViperVM.Format.Binary.Layout.Struct
 import ViperVM.Arch.Linux.ErrorCode
 import ViperVM.Arch.Linux.Handle
 import ViperVM.Arch.Linux.Syscalls
 import ViperVM.Utils.Flow
+import ViperVM.Utils.Types.Generics
+
+
+-- FIXME: readv/writev/etc only support up to 1024 enties (cf UIO_MAXIOV
+-- constant). We should handle the case more than 1024 buffers are passed.
 
 
 -- | Entry for vectors of buffers
 data IOVec = IOVec
-   { iovecPtr  :: Ptr ()
-   , iovecSize :: Word64
-   } deriving (Generic,CStorable)
-
-instance Storable IOVec where
-   sizeOf      = cSizeOf
-   alignment   = cAlignment
-   poke        = cPoke
-   peek        = cPeek
+   { iovecPtr  :: Word64   -- ^ Pointer (FIXME: arch dependent)
+   , iovecSize :: Word64   -- ^ Size
+   } deriving (Generic)
 
 -- | Read cound bytes from the given file descriptor and put them in "buf"
 -- Returns the number of bytes read or 0 if end of file
@@ -79,28 +73,29 @@ handleReadBuffer hdl offset size = do
       -- otherwise return the buffer
       >.~.> \sz -> bufferUnsafePackPtr (fromIntegral sz) (castPtr b)
 
+-- | Create a IOVec data
+toVec :: (Ptr a,Word64) -> IOVec
+toVec (p,s) = IOVec (fromIntegral (ptrToWordPtr p)) s
 
 -- | Like read but uses several buffers
 sysReadMany :: Handle -> [(Ptr a, Word64)] -> SysRet Word64
 sysReadMany (Handle fd) bufs =
    let
-      toVec (p,s) = IOVec (castPtr p) s
-      count = length bufs
+      count       = length bufs
    in
-   withArray (fmap toVec bufs) $ \bufs' ->
+   withArray @(Struct IOVec) (fmap toVec bufs) $ \bufs' ->
       onSuccess (syscall_readv fd bufs' count) fromIntegral
 
 -- | Like readMany, with additional offset in file
 sysReadManyWithOffset :: Handle -> Word64 -> [(Ptr a, Word64)] -> SysRet Word64
 sysReadManyWithOffset (Handle fd) offset bufs =
    let
-      toVec (p,s) = IOVec (castPtr p) s
       count = length bufs
       -- offset is split in 32-bit words
       ol = fromIntegral offset :: Word32
       oh = fromIntegral (offset `shiftR` 32) :: Word32
    in
-   withArray (fmap toVec bufs) $ \bufs' ->
+   withArray @(Struct IOVec) (fmap toVec bufs) $ \bufs' ->
       onSuccess (syscall_preadv fd bufs' count ol oh) fromIntegral
 
 -- | Write cound bytes into the given file descriptor from "buf"
@@ -119,23 +114,21 @@ sysWriteWithOffset (Handle fd) offset buf count =
 sysWriteMany :: Handle -> [(Ptr a, Word64)] -> SysRet Word64
 sysWriteMany (Handle fd) bufs =
    let
-      toVec (p,s) = IOVec (castPtr p) s
       count = length bufs
    in
-   withArray (fmap toVec bufs) $ \bufs' ->
+   withArray @(Struct IOVec) (fmap toVec bufs) $ \bufs' ->
       onSuccess (syscall_writev fd bufs' count) fromIntegral
 
 -- | Like writeMany, with additional offset in file
 sysWriteManyWithOffset :: Handle -> Word64 -> [(Ptr a, Word64)] -> SysRet Word64
 sysWriteManyWithOffset (Handle fd) offset bufs =
    let
-      toVec (p,s) = IOVec (castPtr p) s
       count = length bufs
       -- offset is split in 32-bit words
       ol = fromIntegral offset :: Word32
       oh = fromIntegral (offset `shiftR` 32) :: Word32
    in
-   withArray (fmap toVec bufs) $ \bufs' ->
+   withArray @(Struct IOVec) (fmap toVec bufs) $ \bufs' ->
       onSuccess (syscall_pwritev fd bufs' count ol oh) fromIntegral
 
 -- | Write a buffer

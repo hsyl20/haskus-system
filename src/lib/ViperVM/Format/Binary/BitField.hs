@@ -76,39 +76,33 @@ module ViperVM.Format.Binary.BitField
    )
 where
 
-import GHC.TypeLits
-import Data.Proxy
-import Foreign.Storable
-import Foreign.CStorable
 import ViperVM.Format.Binary.BitSet as BitSet
 import ViperVM.Format.Binary.Enum
 import ViperVM.Format.Binary.Word
 import ViperVM.Format.Binary.Bits
+import ViperVM.Format.Binary.Storable
 import ViperVM.Utils.HList
+import ViperVM.Utils.Types
 
 -- | Bit fields on a base type b
-newtype BitFields b (f :: [*]) = BitFields b deriving (Storable)
+newtype BitFields b (f :: [*]) = BitFields b
+
+instance Storable b b => Storable (BitFields b f) (BitFields b f) where
+   peekPtr p               = BitFields <$> peekPtr (castPtr p)
+   pokePtr p (BitFields b) = pokePtr (castPtr p) b
 
 -- | Get backing word
 bitFieldsBits :: BitFields b f -> b
+{-# INLINE bitFieldsBits #-}
 bitFieldsBits (BitFields b) = b
 
-{-# INLINE bitFieldsBits #-}
-
-instance Storable b => CStorable (BitFields b fields) where
-   cPeek      = peek
-   cPoke      = poke
-   cAlignment = alignment
-   cSizeOf    = sizeOf
 
 -- | A field of n bits
-newtype BitField (n :: Nat) (name :: Symbol) s = BitField s deriving (Storable)
+newtype BitField (n :: Nat) (name :: Symbol) s = BitField s
 
-instance Storable s => CStorable (BitField n name s) where
-   cPeek      = peek
-   cPoke      = poke
-   cAlignment = alignment
-   cSizeOf    = sizeOf
+instance Storable b b => Storable (BitField n name b) (BitField n name b) where
+   peekPtr p              = BitField <$> peekPtr (castPtr p)
+   pokePtr p (BitField b) = pokePtr (castPtr p) b
 
 -- | Get the bit offset of a field from its name
 type family Offset (name :: Symbol) fs :: Nat where

@@ -57,20 +57,17 @@ module ViperVM.Arch.Linux.FileSystem
    )
 where
 
-import Foreign.Marshal.Array (allocaArray)
-import Foreign.Marshal.Alloc (allocaBytes)
-import Foreign.Storable (Storable, peek, poke, sizeOf, alignment)
-import Foreign.CStorable
-import GHC.Generics (Generic)
 
 import ViperVM.Format.Binary.Bits
+import ViperVM.Format.Binary.Storable
 import ViperVM.Format.Binary.Word
-import ViperVM.Format.Binary.Ptr (Ptr, castPtr)
+import ViperVM.Format.Binary.Ptr
 import ViperVM.Format.Binary.BitSet
 import ViperVM.Format.String
 import qualified ViperVM.Format.Binary.BitSet as BitSet
 import ViperVM.Utils.Flow
 import ViperVM.Utils.Maybe
+import ViperVM.Utils.Types.Generics
 
 import ViperVM.Arch.Linux.ErrorCode
 import ViperVM.Arch.Linux.Handle
@@ -347,13 +344,7 @@ data StatStruct = StatStruct
    , statLastAccess'       :: TimeSpec
    , statLastModif'        :: TimeSpec
    , statLastStatusChange' :: TimeSpec
-   } deriving (Generic,CStorable)
-
-instance Storable StatStruct where
-   sizeOf      = cSizeOf
-   alignment   = cAlignment
-   poke        = cPoke
-   peek        = cPeek
+   } deriving (Generic)
 
 data Stat = Stat
    { statDevice            :: DeviceID

@@ -1,5 +1,4 @@
 {-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE FlexibleContexts #-}
@@ -17,15 +16,11 @@ module ViperVM.Arch.Linux.FileSystem.Directory
    )
 where
 
-import Foreign.Storable
-import Foreign.CStorable
-import GHC.Generics (Generic)
-import Foreign.Marshal.Array
-
 import ViperVM.Format.Binary.BitSet as BitSet
 import ViperVM.Format.Binary.Word
 import ViperVM.Format.Binary.Enum
 import ViperVM.Format.Binary.Ptr
+import ViperVM.Format.Binary.Storable
 import ViperVM.Format.String
 
 import ViperVM.Arch.Linux.ErrorCode
@@ -33,6 +28,7 @@ import ViperVM.Arch.Linux.Handle
 import ViperVM.Arch.Linux.Syscalls
 import ViperVM.Arch.Linux.FileSystem
 import ViperVM.Utils.Flow
+import ViperVM.Utils.Types.Generics
 
 sysCreateDirectory :: Maybe Handle -> FilePath -> FilePermissions -> Bool -> SysRet ()
 sysCreateDirectory fd path perm sticky = do
@@ -56,13 +52,7 @@ data DirectoryEntryHeader = DirectoryEntryHeader
    , dirOffset    :: Int64    -- ^ Offset of the next entry
    , dirLength    :: Word16   -- ^ Length of the entry
    , dirFileTyp   :: Word8    -- ^ Type of file
-   } deriving (Generic,CStorable)
-
-instance Storable DirectoryEntryHeader where
-   peek      = cPeek
-   poke      = cPoke
-   sizeOf    = cSizeOf
-   alignment = cAlignment
+   } deriving (Generic)
 
 data DirectoryEntry = DirectoryEntry
    { entryInode :: Word64

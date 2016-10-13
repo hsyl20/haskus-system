@@ -23,7 +23,6 @@ where
 import Prelude hiding (take,replicate)
 
 import ViperVM.Format.Binary.Ptr
-import ViperVM.Format.Binary.Layout
 import ViperVM.Format.Binary.Storable
 import qualified ViperVM.Format.Binary.Layout.Vector as VL
 import ViperVM.Format.Binary.Layout.Vector (VectorLayout)

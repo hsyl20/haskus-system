@@ -2,6 +2,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE TypeApplications #-}
 
 -- | Linux signals
 module ViperVM.Arch.Linux.Signal
@@ -24,7 +25,6 @@ import ViperVM.Format.Binary.Vector (Vector)
 import ViperVM.Format.Binary.Word
 import ViperVM.Format.Binary.Storable
 import ViperVM.Format.Binary.Layout.Struct
-import ViperVM.Format.Binary.Ptr (Ptr,nullPtr)
 import ViperVM.Utils.Flow
 import ViperVM.Utils.Types.Generics
 
@@ -77,7 +77,7 @@ data ChangeSignals
 -- | Change signal mask
 sysChangeSignalMask :: ChangeSignals -> Maybe SignalSet -> SysRet SignalSet
 sysChangeSignalMask act set =
-   withMaybeOrNull set $ \pset ->
+   withMaybeOrNull @(Struct SignalSet) set $ \pset ->
       alloca $ \ret ->
          onSuccessIO (syscall_sigprocmask (fromEnum act) pset ret)
             (const $ peekStruct ret)

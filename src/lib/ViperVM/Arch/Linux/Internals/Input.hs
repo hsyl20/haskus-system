@@ -78,18 +78,15 @@ import ViperVM.Format.Binary.Word
 import ViperVM.Format.Binary.Bits
 import ViperVM.Format.Binary.Buffer
 import ViperVM.Format.Binary.Ptr
+import ViperVM.Format.Binary.Storable
 import ViperVM.Format.String (peekCString)
 import ViperVM.Arch.Linux.Time (TimeVal,Clock)
 import ViperVM.Arch.Linux.ErrorCode
 import ViperVM.Arch.Linux.Handle
 import ViperVM.Arch.Linux.Ioctl
 import ViperVM.Utils.Flow
+import ViperVM.Utils.Types.Generics
 
-import GHC.Generics (Generic)
-import Foreign.Storable
-import Foreign.CStorable
-import Foreign.Marshal.Alloc
-import Foreign.Marshal.Array
 import Foreign.Marshal.Utils (fromBool)
 import Data.Maybe
 
@@ -552,7 +549,7 @@ data Event = Event
    , eventType  :: !(EnumField Word16 EventType)
    , eventCode  :: !Word16
    , eventValue :: !Int32
-   } deriving (Show,Eq,Generic,CStorable)
+   } deriving (Show,Eq,Generic)
 
 instance Storable Event where
    alignment = cAlignment
@@ -575,7 +572,7 @@ data DeviceInfo = DeviceInfo
    , infoVendor  :: !Word16
    , infoProduct :: !Word16
    , infoVersion :: !Word16
-   } deriving (Show,Eq,Generic,CStorable)
+   } deriving (Show,Eq,Generic)
 
 instance Storable DeviceInfo where
    sizeOf      = cSizeOf
@@ -612,7 +609,7 @@ data AbsoluteInfo = AbsoluteInfo
    , absFuzz       :: !Int32   -- ^ Fuzz value used to filter noise from the event stream
    , absFlat       :: !Int32   -- ^ Values that are within this value will be discarded and reported as 0 instead
    , absResolution :: !Int32   -- ^ Resolution for the values reported for the axis
-   } deriving (Show, Eq, Generic, CStorable)
+   } deriving (Show, Eq, Generic)
 
 instance Storable AbsoluteInfo where
    sizeOf      = cSizeOf
@@ -642,7 +639,7 @@ data KeymapEntry = KeymapEntry
    , keymapEntryIndex    :: !Word16                    -- ^ Index in the keymap (may be used instead of the scancode)
    , keymapEntryKeyCode  :: !Word32                    -- ^ Key code assigned to this scancode
    , keymapEntryScanCode :: !(Vector 32 Word8)         -- ^ Scan in machine-endian form (up to 32 bytes)
-   } deriving (Show,Generic,CStorable)
+   } deriving (Show,Generic)
 
 
 instance Storable KeymapEntry where
@@ -661,7 +658,7 @@ data EventMask = EventMask
    , maskCodesSize :: !Word32
    , maskCodesPtr  :: !Word64
    }
-   deriving (Show,Eq,Generic,CStorable)
+   deriving (Show,Eq,Generic)
 
 instance Storable EventMask where
    sizeOf      = cSizeOf
@@ -688,7 +685,7 @@ data RepeatSettings = RepeatSettings
    { repeatDelay  :: !Word
    , repeatPeriod :: !Word
    }
-   deriving (Show,Eq,Generic,CStorable)
+   deriving (Show,Eq,Generic)
 
 instance Storable RepeatSettings where
    sizeOf      = cSizeOf
@@ -997,7 +994,7 @@ data ForceFeedbackStatus
 data ForceFeedbackReplay = ForceFeedbackReplay
    { ffReplayLength :: !Word16 -- ^ Duration of the effect
    , ffReplayDelay  :: !Word16 -- ^ Delay before effect should start playing
-   } deriving (Show,Eq,Generic,CStorable)
+   } deriving (Show,Eq,Generic)
 
 instance Storable ForceFeedbackReplay where
    sizeOf    = cSizeOf
@@ -1009,7 +1006,7 @@ instance Storable ForceFeedbackReplay where
 data ForceFeedbackTrigger = ForceFeedbackTrigger
    { ffTriggerButton   :: !Word16 -- ^ number of the button triggering the effect
    , ffTriggerInterval :: !Word16 -- ^ controls how soon the effect can be re-triggered
-   } deriving (Show,Eq,Generic,CStorable)
+   } deriving (Show,Eq,Generic)
 
 instance Storable ForceFeedbackTrigger where
    sizeOf    = cSizeOf
@@ -1028,7 +1025,7 @@ data ForceFeedbackEnvelope = ForceFeedbackEnvelope
    , ffEnvelopeAttackLevel  :: !Word16 -- ^ level at the beginning of the attack
    , ffEnvelopeFadeLength   :: !Word16 -- ^ duration of fade (ms)
    , ffEnvelopeFadeLevel    :: !Word16 -- ^ level at the end of fade
-   } deriving (Eq,Show,Generic,CStorable)
+   } deriving (Eq,Show,Generic)
 
 instance Storable  ForceFeedbackEnvelope where
    sizeOf    = cSizeOf
@@ -1040,7 +1037,7 @@ instance Storable  ForceFeedbackEnvelope where
 data ForceFeedbackConstantEffect = ForceFeedbackConstantEffect
    { ffConstantEffectLevel    :: !Int16                 -- ^ strength of the effect; may be negative
    , ffConstantEffectEnvelope :: !ForceFeedbackEnvelope -- ^ envelope data
-   } deriving (Eq,Show,Generic,CStorable)
+   } deriving (Eq,Show,Generic)
 
 instance Storable  ForceFeedbackConstantEffect where
    sizeOf    = cSizeOf
@@ -1054,7 +1051,7 @@ data ForceFeedbackRampEffect = ForceFeedbackRampEffect
    { ffRampEffectStartLevel :: !Int16                 -- ^ beginning strength of the effect; may be negative
    , ffRampEffectEndLevel   :: !Int16                 -- ^ final strength of the effect; may be negative
    , ffRampEffectEnvelope   :: !ForceFeedbackEnvelope -- ^ envelope data
-   } deriving (Eq,Show,Generic,CStorable)
+   } deriving (Eq,Show,Generic)
 
 instance Storable  ForceFeedbackRampEffect where
    sizeOf    = cSizeOf
@@ -1070,7 +1067,7 @@ data ForceFeedbackConditionEffect = ForceFeedbackConditionEffect
    , ffConditionEffectLeftCoeff       :: !Int16  -- ^ same for the left side
    , ffConditionEffectDeadBand        :: !Word16 -- ^ size of the dead zone, where no force is produced
    , ffConditionEffectCenter          :: !Int16  -- ^ position of the dead zone
-   } deriving (Eq,Show,Generic,CStorable)
+   } deriving (Eq,Show,Generic)
 
 instance Storable  ForceFeedbackConditionEffect where
    sizeOf    = cSizeOf
@@ -1094,7 +1091,7 @@ data ForceFeedbackPeriodicEffect = ForceFeedbackPeriodicEffect
    , ffPeriodicEffectEnvelope   :: !ForceFeedbackEnvelope -- ^ envelope data
    , ffPeriodicEffectCustomLen  :: !Word32                -- ^ number of samples (FF_CUSTOM only)
    , ffPeriodicEffectCustomData :: !(Ptr Int16)           -- ^ buffer of samples (FF_CUSTOM only)
-   } deriving (Eq,Show,Generic,CStorable)
+   } deriving (Eq,Show,Generic)
 
 instance Storable  ForceFeedbackPeriodicEffect where
    sizeOf    = cSizeOf
@@ -1109,7 +1106,7 @@ instance Storable  ForceFeedbackPeriodicEffect where
 data ForceFeedbackRumbleEffect = ForceFeedbackRumbleEffect
    { ffRumbleEffectStrongMagnitude :: !Word16 -- ^ magnitude of the heavy motor
    , ffRumbleEffectWeakMagnitude   :: !Word16 -- ^ magnitude of the light one
-   } deriving (Eq,Show,Generic,CStorable)
+   } deriving (Eq,Show,Generic)
 
 instance Storable  ForceFeedbackRumbleEffect where
    sizeOf    = cSizeOf
@@ -1153,7 +1150,7 @@ data ForceFeedbackEffect = ForceFeedbackEffect
                                   , Vector 2 ForceFeedbackConditionEffect -- one for each axis
                                   , ForceFeedbackRumbleEffect
                                   ])
-   } deriving (Show,Generic,CStorable)
+   } deriving (Show,Generic)
 
 instance Storable ForceFeedbackEffect where
    sizeOf    = cSizeOf

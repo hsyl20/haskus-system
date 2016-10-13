@@ -18,6 +18,7 @@ module ViperVM.Format.Binary.Storable
    , sizeOf
    , alignment
    , MemoryLayout (..)
+   , WithLayout (..)
    -- * Peek/Poke
    , peek
    , poke
@@ -43,8 +44,10 @@ module ViperVM.Format.Binary.Storable
    , copy
    , allocaBytes
    , alloca
+   , allocaArray
    , with
    , withMaybeOrNull
+   , withArray
    )
 where
 
@@ -126,6 +129,29 @@ sizeOf = natValue @(SizeOf r)
 alignment :: forall r. KnownNat (Alignment r) => Word
 alignment = natValue @(Alignment r)
 
+class MemoryLayout r where
+   -- | Size of the stored data (in bytes)
+   type SizeOf r    :: Nat
+
+   -- | Alignment requirement (in bytes)
+   type Alignment r :: Nat
+
+
+-- | Explicit layout
+newtype WithLayout (r :: * -> *) e
+   = WithLayout { unLayout :: e}
+   deriving (Show,Eq,Ord)
+
+type instance LayoutPathType (WithLayout r e) (LayoutPath (p ': ps))
+   = LayoutPathType (r e) (LayoutPath (p ': ps))
+
+type instance LayoutPathOffset (WithLayout r e) (LayoutPath (p ': ps))
+   = LayoutPathOffset (r e) (LayoutPath (p ': ps))
+
+instance MemoryLayout (WithLayout r e) where
+   type SizeOf    (WithLayout r e) = SizeOf (r e)
+   type Alignment (WithLayout r e) = Alignment (r e)
+
 instance MemoryLayout Word8 where
    type SizeOf    Word8 = 1
    type Alignment Word8 = 1
@@ -187,6 +213,10 @@ instance Storable Int32 Int32 where
    pokePtr = FS.poke
 
 instance Storable Int64 Int64 where
+   peekPtr = FS.peek
+   pokePtr = FS.poke
+
+instance Storable (Ptr a) (Ptr a) where
    peekPtr = FS.peek
    pokePtr = FS.poke
 
@@ -347,6 +377,14 @@ alloca :: forall a b.
    ) => (Ptr a -> IO b) -> IO b
 alloca = allocaBytes (sizeOf @a)
 
+-- | Temporarily store a list of value
+--
+-- TODO: use a better Ptr phantom type ("DynVector r" or something like this)
+allocaArray :: forall r b.
+   ( KnownNat (SizeOf r)
+   ) => Word -> (Ptr r -> IO b) -> IO b
+allocaArray n f = allocaBytes (n * sizeOf @r) f
+
 -- | Temporarily store 'c' into memory and pass the pointer to 'f'
 with :: forall a b c.
    ( Storable a c
@@ -364,6 +402,18 @@ withMaybeOrNull :: forall r e b.
 withMaybeOrNull s f = case s of
    Nothing -> f nullPtr
    Just x  -> with x f
+
+-- | Temporarily store a list of value
+--
+-- FIXME: use a better Ptr phantom type ("DynVector r e" or something like this)
+withArray :: forall r e b.
+   ( Storable r e
+   , KnownNat (SizeOf r)
+   ) => [e] -> (Ptr r -> IO b) -> IO b
+withArray xs f = do
+   allocaArray (fromIntegral (length xs)) $ \p -> do
+      pokeArray p xs
+      f p
 
 -- | Copy from a pointer to another
 copy :: forall a p1 p2.

@@ -19,11 +19,8 @@ where
 import ViperVM.Format.Binary.BitField
 import ViperVM.Format.Binary.Bits
 import ViperVM.Format.Binary.Word
-
-import Foreign.Storable
-import Foreign.CStorable
-import Data.Proxy
-import GHC.TypeLits
+import ViperVM.Format.Binary.Storable
+import ViperVM.Utils.Types
 
 -- | Fixed-point number
 -- `w` is the backing type
@@ -33,7 +30,8 @@ newtype FixedPoint w (i :: Nat) (f :: Nat) = FixedPoint (BitFields w
    '[ BitField i "integer"    w
     , BitField f "fractional" w
     ])
-   deriving (Storable,CStorable)
+
+deriving instance Storable (FixedPoint w n d) (FixedPoint w n d)
 
 deriving instance forall w n d.
    ( Integral w

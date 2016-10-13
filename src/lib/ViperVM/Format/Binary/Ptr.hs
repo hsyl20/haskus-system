@@ -27,6 +27,7 @@ module ViperVM.Format.Binary.Ptr
    ( PtrLike (..)
    -- * Pointer
    , Ptr
+   , Ptr.free
    -- * Finalized pointer
    , FinalizedPtr (..)
    , withFinalizedPtr

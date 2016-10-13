@@ -1,5 +1,4 @@
 {-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DataKinds #-}
 
 -- | Linux FS internals
@@ -71,12 +70,11 @@ import ViperVM.Format.Binary.BitSet as BitSet
 import ViperVM.Format.Binary.Vector as Vector
 import ViperVM.Format.Binary.Enum
 import ViperVM.Format.Binary.Word
+import ViperVM.Format.Binary.Storable
 import ViperVM.Utils.Flow
+import ViperVM.Utils.Types.Generics
 
-import Foreign.Storable
 import Foreign.Marshal.Utils (toBool)
-import Foreign.CStorable
-import GHC.Generics (Generic)
 
 -- =============================================================
 --    From linux/include/uapi/linux/fs.h
@@ -104,7 +102,7 @@ data FileCloneRange = FileCloneRange
    , fcrSrcLength  :: Word64
    , fcrDestOffset :: Word64
    }
-   deriving (Show,Generic,CStorable)
+   deriving (Show,Generic)
 
 instance Storable FileCloneRange where
    sizeOf      = cSizeOf
@@ -118,7 +116,7 @@ data TrimRange = TrimRange
    , trLength    :: Word64
    , trMinLength :: Word64
    }
-   deriving (Show,Generic,CStorable)
+   deriving (Show,Generic)
 
 instance Storable TrimRange where
    sizeOf      = cSizeOf
@@ -146,7 +144,7 @@ data FileDedupeRangeInfo = FileDedupeRangeInfo
                                 -- == FILE_DEDUPE_RANGE_DIFFERS if data differs
    , fdriReserved     :: Word32 -- ^ must be zero 
    }
-   deriving (Show,Eq,Generic,CStorable)
+   deriving (Show,Eq,Generic)
 
 instance Storable FileDedupeRangeInfo where
    sizeOf      = cSizeOf
@@ -164,7 +162,7 @@ data FileDedupeRangeHeader = FileDedupeRangeHeader
    , fdrReserved1 :: Word16 -- ^ must be zero
    , fdrReserved2 :: Word32 -- ^ must be zero
    }
-   deriving (Show,Eq,Generic,CStorable)
+   deriving (Show,Eq,Generic)
 
 instance Storable FileDedupeRangeHeader where
    sizeOf      = cSizeOf
@@ -183,7 +181,7 @@ data FilesStatStruct = FilesStatStruct
    , fssNrFreeFiles :: CULong -- ^ Read-only
    , fssMaxFiles    :: CULong -- ^ Tunable
    }
-   deriving (Show,Eq,Generic,CStorable)
+   deriving (Show,Eq,Generic)
 
 instance Storable FilesStatStruct where
    sizeOf      = cSizeOf
@@ -197,7 +195,7 @@ data InodesStat = InodesStat
    , isNrUnused :: CLong
    , isDummy    :: Vector 5 CLong -- padding for sysctl ABI compatibility
    }
-   deriving (Show,Generic,CStorable)
+   deriving (Show,Generic)
 
 instance Storable InodesStat where
    sizeOf      = cSizeOf
@@ -260,7 +258,7 @@ data FsxAttr = FsxAttr
    , fsxProjectID :: Word32              -- ^ project identifier (get/set)
    , fsxPadding   :: Vector 12 Word8
    }
-   deriving (Show,Generic,CStorable)
+   deriving (Show,Generic)
 
 instance Storable FsxAttr where
    sizeOf      = cSizeOf
@@ -439,13 +437,7 @@ ioctlTraceTearDown = ioctlSignal 0x12 118 (0 :: Int)
 data Range = Range
    { rangeStart  :: Word64
    , rangeLength :: Word64
-   } deriving (Generic,CStorable)
-
-instance Storable Range where
-   sizeOf    = cSizeOf
-   alignment = cAlignment
-   peek      = cPeek
-   poke      = cPoke
+   } deriving (Generic)
 
 -- | BLKDISCARD
 ioctlDiscard :: Range -> Handle -> SysRet ()

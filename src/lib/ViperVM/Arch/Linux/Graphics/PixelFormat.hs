@@ -17,12 +17,11 @@ import ViperVM.Format.Binary.Endianness
 import ViperVM.Format.Binary.Enum
 import ViperVM.Format.Binary.BitField
 import ViperVM.Format.Binary.Word
+import ViperVM.Format.Binary.Storable
+import ViperVM.Utils.Types
 import Data.Char (ord)
-import Data.Proxy
 import Data.Map (Map, (!), fromList)
 import Data.Tuple (swap)
-import Foreign.Storable
-import Foreign.CStorable
 
 -- =============================================================
 --    From linux/include/uapi/drm/drm_fourcc.h
@@ -58,12 +57,6 @@ formatFormat :: PixelFormat -> Format
 formatFormat (PixelFormat fmt) = 
    fromEnumField (extractField (Proxy :: Proxy "format") fmt)
 {-# INLINE formatFormat #-}
-
-instance CStorable PixelFormat where
-   cSizeOf      = sizeOf
-   cAlignment   = alignment
-   cPeek        = peek
-   cPoke        = poke
 
 type CFormat = BitFields Word32
   '[ BitField 8 "d" Int

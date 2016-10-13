@@ -12,30 +12,22 @@ module ViperVM.Arch.Linux.FileSystem.Notification
    )
 where
 
-import Foreign.Marshal.Array (withArray, peekArray)
-import Foreign.Storable (Storable, peek, poke, sizeOf, alignment)
-import Foreign.CStorable
 import Data.Maybe (mapMaybe)
-import GHC.Generics (Generic)
 
 import ViperVM.Format.Binary.Word
+import ViperVM.Format.Binary.Storable
 import ViperVM.Format.Binary.BitSet (CBitSet, BitSet, fromBits, toBits)
 import ViperVM.Arch.Linux.ErrorCode
 import ViperVM.Arch.Linux.Handle
 import ViperVM.Arch.Linux.Syscalls
+import ViperVM.Utils.Types.Generics
 
 -- | Poll struct
 data PollStruct = PollStruct
    { pollFD             :: Int32
    , pollEvents         :: Word16
    , pollReturnedEvents :: Word16
-   } deriving (Generic,CStorable)
-
-instance Storable PollStruct where
-   sizeOf      = cSizeOf
-   alignment   = cAlignment
-   poke        = cPoke
-   peek        = cPeek
+   } deriving (Generic)
 
 -- | Polling event
 data PollEvent

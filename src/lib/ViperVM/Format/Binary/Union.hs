@@ -7,6 +7,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE TypeApplications #-}
 
 -- | Union (as in C)
 --
@@ -76,37 +77,59 @@ import Control.Monad (when)
 newtype Union (x :: [*]) = Union (ForeignPtr ()) deriving (Show)
 
 -- | Retrieve a union member from its type
-fromUnion :: (Storable a, IsMember a l ~ 'True) => Union l -> a
-fromUnion (Union fp) = unsafePerformIO $ withForeignPtr fp (peek . castPtr)
+fromUnion :: (Storable a a, IsMember a l ~ 'True) => Union l -> a
+fromUnion (Union fp) = unsafePerformIO $ withForeignPtr fp (peek' . castPtr)
 
 -- | Create a new union from one of the union types
-toUnion :: forall a l . (Storable (Union l), Storable a, IsMember a l ~ 'True) => a -> Union l
+toUnion :: forall a l.
+   ( Storable (Union l) (Union l)
+   , Storable a a
+   , IsMember a l ~ 'True
+   , KnownNat (SizeOf (Union l))
+   , KnownNat (SizeOf a)
+   ) => a -> Union l
 toUnion = toUnion' False
 
 -- | Like 'toUnion' but set the remaining bytes to 0
-toUnionZero :: forall a l . (Storable (Union l), Storable a, IsMember a l ~ 'True) => a -> Union l
+toUnionZero :: forall a l.
+   ( Storable (Union l) (Union l)
+   , Storable a a
+   , IsMember a l ~ 'True
+   , KnownNat (SizeOf (Union l))
+   , KnownNat (SizeOf a)
+   ) => a -> Union l
 toUnionZero = toUnion' True
 
 
 -- | Create a new union from one of the union types
-toUnion' :: forall a l . (Storable (Union l), Storable a, IsMember a l ~ 'True) => Bool -> a -> Union l
+toUnion' :: forall a l.
+   ( Storable (Union l) (Union l)
+   , Storable a a
+   , IsMember a l ~ 'True
+   , KnownNat (SizeOf (Union l))
+   , KnownNat (SizeOf a)
+   ) => Bool -> a -> Union l
 toUnion' zero v = unsafePerformIO $ do
-   let sz = sizeOf (undefined :: Union l)
+   let sz = fromIntegral (sizeOf @(Union l))
    fp <- mallocForeignPtrBytes sz
    withForeignPtr fp $ \p -> do
       -- set bytes after the object to 0
       when zero $ do
-         let psz = sizeOf (undefined :: a)
+         let psz = fromIntegral (sizeOf @a)
          memSet (p `indexPtr` psz) (fromIntegral (sz - psz)) 0
-      poke (castPtr p) v
+      poke' (castPtr p) v
    return $ Union fp
 
 -- | Convert two storable values
+-- TODO: remove this
 unionCast :: forall a b.
-   ( Storable a
-   , Storable b
+   ( Storable a a
+   , Storable b b
    , Member a '[a,b]
    , Member b '[a,b]
+   , KnownNat (SizeOf a)
+   , KnownNat (SizeOf (Union '[a,b]))
+   , KnownNat (Alignment (Union '[a,b]))
    ) => a -> b
 unionCast a = fromUnion u
    where
@@ -121,6 +144,9 @@ type family MapAlignment fs where
    MapAlignment '[]       = '[]
    MapAlignment (x ': xs) = Alignment x ': MapAlignment xs
 
+instance MemoryLayout (Union fs) where
+   type SizeOf (Union fs)    = Max (MapSizeOf fs)
+   type Alignment (Union fs) = Max (MapAlignment fs)
 
 instance forall fs.
       ( KnownNat (Max (MapSizeOf fs))
@@ -128,66 +154,14 @@ instance forall fs.
       )
       => Storable (Union fs) (Union fs)
    where
-      type SizeOf (Union fs)    = Max (MapSizeOf fs)
-      type Alignment (Union fs) = Max (MapAlignment fs)
       peekPtr ptr = do
-         let sz = fromIntegral $ natVal (Proxy :: Proxy (SizeOf (Union fs)))
+         let sz = fromIntegral $ sizeOf @(Union fs)
          fp <- mallocForeignPtrBytes sz
          withForeignPtr fp $ \p -> 
             memCopy p (castPtr ptr) (fromIntegral sz)
          return (Union fp)
 
       pokePtr ptr (Union fp) = do
-         let sz = natVal (Proxy :: Proxy (SizeOf (Union fs)))
+         let sz = sizeOf @(Union fs)
          withForeignPtr fp $ \p ->
             memCopy (castPtr ptr) p (fromIntegral sz)
-
--------------------------------------------------------------------------------------
--- We use HFoldr' to get the maximum size and alignment of the types in the union
--------------------------------------------------------------------------------------
-
-data FoldSizeOf    = FoldSizeOf
-data FoldAlignment = FoldAlignment
-
-instance (r ~ Int, Storable a) => Apply FoldSizeOf (a, Int) r where
-   apply _ (_,r) = max r (sizeOf (undefined :: a))
-
-instance (r ~ Int, Storable a) => Apply FoldAlignment (a, Int) r where
-   apply _ (_,r) = max r (alignment (undefined :: a))
-
--- | Get the union size (i.e. the maximum of the types in the union)
-unionSize :: forall l . HFoldr' FoldSizeOf Int l Int => Union l -> Int
-unionSize _ = hFoldr' FoldSizeOf (0 :: Int) (undefined :: HList l)
-
--- | Get the union alignment (i.e. the maximum of the types in the union)
-unionAlignment :: forall l . HFoldr' FoldAlignment Int l Int => Union l -> Int
-unionAlignment _ = hFoldr' FoldAlignment (0 :: Int) (undefined :: HList l)
-
-
--------------------------------------------------------------------------------------
--- Finally we can write the Storable and CStorable instances
--------------------------------------------------------------------------------------
-
-instance
-   ( HFoldr' FoldSizeOf Int l Int
-   , HFoldr' FoldAlignment Int l Int
-   ) => Storable (Union l) where
-   sizeOf             = unionSize
-   alignment          = unionAlignment
-   peek ptr = do
-      let sz = sizeOf (undefined :: Union l)
-      fp <- mallocForeignPtrBytes sz
-      withForeignPtr fp $ \p -> 
-         memCopy p (castPtr ptr) (fromIntegral sz)
-      return (Union fp)
-
-   poke ptr (Union fp) = do
-      let sz = sizeOf (undefined :: Union l)
-      withForeignPtr fp $ \p ->
-         memCopy (castPtr ptr) p (fromIntegral sz)
-
-instance (Storable (Union l)) => CStorable (Union l) where
-   cPeek      = peek
-   cPoke      = poke
-   cAlignment = alignment
-   cSizeOf    = sizeOf
