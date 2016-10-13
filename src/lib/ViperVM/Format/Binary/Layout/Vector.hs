@@ -99,7 +99,7 @@ vectorPokeList :: forall n e p.
 {-# INLINE vectorPokeList #-}
 vectorPokeList p vs = 
       if List.checkLength (natValue @n) vs
-         then pokeArray (castPtr p) vs
+         then pokeArray' (castPtr p) vs
          else error "vectorFromList: invalid list size"
 
 -- | Convert a list into a vector (don't check list size)
@@ -110,7 +110,7 @@ unsafeVectorPokeList :: forall n e p.
    , PtrLike p
    ) => p (VectorLayout n e) -> [e] -> IO ()
 {-# INLINE unsafeVectorPokeList #-}
-unsafeVectorPokeList p vs = pokeArray (castPtr p) vs
+unsafeVectorPokeList p vs = pokeArray' (castPtr p) vs
 
 -- | Take at most n element from the list, then use z
 vectorPokeFilledList :: forall n e p.
@@ -120,7 +120,7 @@ vectorPokeFilledList :: forall n e p.
    , PtrLike p
    ) => p (VectorLayout n e) -> e -> [e] -> IO ()
 {-# INLINE vectorPokeFilledList #-}
-vectorPokeFilledList p z v = pokeArray (castPtr p) vs
+vectorPokeFilledList p z v = pokeArray' (castPtr p) vs
    where
       vs = List.take n (v ++ repeat z)
       n  = natValue @n

@@ -1,6 +1,6 @@
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE LambdaCase #-}
 
 -- | Linux signals
@@ -22,15 +22,16 @@ import ViperVM.Arch.Linux.Syscalls
 import ViperVM.Arch.Linux.Process
 import ViperVM.Format.Binary.Vector (Vector)
 import ViperVM.Format.Binary.Word
+import ViperVM.Format.Binary.Storable
+import ViperVM.Format.Binary.Layout.Struct
 import ViperVM.Format.Binary.Ptr (Ptr,nullPtr)
 import ViperVM.Utils.Flow
-
-import Foreign.Storable
-import Foreign.Marshal.Utils (with)
-import Foreign.Marshal.Alloc (alloca)
+import ViperVM.Utils.Types.Generics
 
 -- | Signal set
-newtype SignalSet = SignalSet (Vector 16 Word64) deriving (Storable)
+newtype SignalSet = SignalSet
+   { signalSet :: Vector 16 Word64
+   } deriving (Generic)
 
 -- | Pause
 sysPause :: SysRet ()
@@ -76,9 +77,7 @@ data ChangeSignals
 -- | Change signal mask
 sysChangeSignalMask :: ChangeSignals -> Maybe SignalSet -> SysRet SignalSet
 sysChangeSignalMask act set =
-   let f x = alloca $ \(ret :: Ptr SignalSet) ->
-               onSuccessIO (syscall_sigprocmask (fromEnum act) x ret) (const $ peek ret)
-   in
-   case set of
-      Just s -> with s f
-      Nothing -> f nullPtr
+   withMaybeOrNull set $ \pset ->
+      alloca $ \ret ->
+         onSuccessIO (syscall_sigprocmask (fromEnum act) pset ret)
+            (const $ peekStruct ret)

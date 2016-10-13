@@ -8,7 +8,6 @@ module ViperVM.Utils.Memory
    , peekArrays
    , pokeArrays
    , withArrays
-   , withMaybeOrNull
    )
 where
 
@@ -68,8 +67,3 @@ withArrays vs f = go [] vs
       go as []     = f (reverse as)
       go as (x:xs) = withArray x $ \a -> go (a:as) xs
 
--- | Execute f with a pointer to 'a' or NULL
-withMaybeOrNull :: Storable a => Maybe a -> (Ptr a -> IO b) -> IO b
-withMaybeOrNull s f = case s of
-   Nothing -> f nullPtr
-   Just x  -> with x f

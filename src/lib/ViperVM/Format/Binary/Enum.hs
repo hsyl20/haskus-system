@@ -25,14 +25,17 @@ import ViperVM.Format.Binary.Ptr
 -- | Store enum 'a' as a 'b'
 newtype EnumField b a = EnumField a deriving (Show,Eq)
 
+instance MemoryLayout (EnumField b a) where
+   type SizeOf    (EnumField b a) = SizeOf b
+   type Alignment (EnumField b a) = Alignment b
+   
+
 instance
       ( Integral b
       , Storable b b
       , CEnum a
       ) => Storable (EnumField b a) a
    where
-      type SizeOf (EnumField b a)    = SizeOf b
-      type Alignment (EnumField b a) = Alignment b
       peekPtr p   = toCEnum <$> peekPtr (castPtr p :: Ptr b)
       pokePtr p v = pokePtr (castPtr p :: Ptr b) (fromCEnum v)
 

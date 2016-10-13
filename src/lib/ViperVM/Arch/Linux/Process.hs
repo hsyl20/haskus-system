@@ -1,4 +1,5 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE TypeApplications #-}
 
 -- | Process management
 module ViperVM.Arch.Linux.Process
@@ -24,10 +25,10 @@ module ViperVM.Arch.Linux.Process
 where
 
 import Control.Monad (void)
-import Foreign.Marshal.Alloc (alloca)
 
-import ViperVM.Format.Binary.Ptr (Ptr, nullPtr)
+import ViperVM.Format.Binary.Ptr (nullPtr)
 import ViperVM.Format.Binary.Word
+import ViperVM.Format.Binary.Storable
 import ViperVM.Arch.Linux.Syscalls
 import ViperVM.Arch.Linux.ErrorCode
 
@@ -49,11 +50,11 @@ sysExit :: Int64 -> IO ()
 sysExit n = void (syscall_exit n)
 
 -- | Get CPU and NUMA node executing the current process
-sysGetCPU :: SysRet (Word,Word)
+sysGetCPU :: SysRet (Word64,Word64)
 sysGetCPU =
-   alloca $ \cpu ->
-      alloca $ \node ->
-         onSuccessIO (syscall_getcpu (cpu :: Ptr Word) (node :: Ptr Word) nullPtr)
+   alloca @Word64 $ \cpu ->
+      alloca @Word64 $ \node ->
+         onSuccessIO (syscall_getcpu cpu node nullPtr)
             (const ((,) <$> peek cpu <*> peek node))
 
 -- | Return process ID

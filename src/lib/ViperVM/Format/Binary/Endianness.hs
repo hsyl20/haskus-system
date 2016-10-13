@@ -126,8 +126,8 @@ getHostEndianness = do
    -- Write a 32 bit Int and check byte ordering
    let magic = 1 .|. shiftL 8 2 .|. shiftL 16 3 .|. shiftL 24 4 :: Word32
    alloca $ \p -> do
-      poke p magic
-      rs <- peekArray 4 (castPtr p :: Ptr Word8)
+      poke' p magic
+      rs <- peekArray' 4 (castPtr p :: Ptr Word8)
       return $ if rs == [1,2,3,4] then BigEndian else LittleEndian
 
 -- | Detected host endianness
@@ -181,13 +181,19 @@ data AsBigEndian a = AsBigEndian a deriving (Show,Eq,Ord)
 -- | Force a data to be read/stored as little-endian
 data AsLittleEndian a = AsLittleEndian a deriving (Show,Eq,Ord)
 
+instance MemoryLayout (AsBigEndian a) where
+   type SizeOf (AsBigEndian a)    = SizeOf a
+   type Alignment (AsBigEndian a) = Alignment a
+
+instance MemoryLayout (AsLittleEndian a) where
+   type SizeOf (AsLittleEndian a)    = SizeOf a
+   type Alignment (AsLittleEndian a) = Alignment a
+
 instance forall a.
       ( ByteReversable a
       , Storable a a
       ) => Storable (AsBigEndian a) a
    where
-      type SizeOf (AsBigEndian a)    = SizeOf a
-      type Alignment (AsBigEndian a) = Alignment a
       peekPtr ptr   = bigEndianToHost <$> peekPtr (castPtr ptr :: Ptr a)
       pokePtr ptr v = pokePtr (castPtr ptr :: Ptr a) (hostToBigEndian v)
 
@@ -196,7 +202,5 @@ instance forall a.
       , Storable a a
       ) => Storable (AsLittleEndian a) a
    where
-      type SizeOf (AsLittleEndian a)    = SizeOf a
-      type Alignment (AsLittleEndian a) = Alignment a
       peekPtr ptr   = bigEndianToHost <$> peekPtr (castPtr ptr :: Ptr a)
       pokePtr ptr v = pokePtr (castPtr ptr :: Ptr a) (hostToLittleEndian v)

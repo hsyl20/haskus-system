@@ -171,14 +171,16 @@ type family PaddingEx (m :: Nat) (a :: Nat) where
    PaddingEx 0 a = 0
    PaddingEx m a = a - m
 
+instance MemoryLayout (Record fs) where
+   type SizeOf (Record fs)    = FullRecordSize fs
+   type Alignment (Record fs) = RecordAlignment fs 1
+
 instance forall fs s.
       ( s ~ FullRecordSize fs
       , KnownNat s
       )
       => Storable (Record fs) (Record fs)
    where
-      type SizeOf (Record fs)    = FullRecordSize fs
-      type Alignment (Record fs) = RecordAlignment fs 1
       peekPtr ptr = do
          let sz = recordSize (undefined :: Record fs)
          fp <- mallocForeignPtrBytes (fromIntegral sz)

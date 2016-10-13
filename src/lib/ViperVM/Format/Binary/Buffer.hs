@@ -142,9 +142,9 @@ bufferZipWith f a b
             withBufferPtr a $ \pa ->
                withBufferPtr b $ \pb ->
                   forM_ [0..sz-1] $ \off -> do
-                     v <- f <$> peekByteOff pa (fromIntegral off)
-                            <*> peekByteOff pb (fromIntegral off)
-                     pokeByteOff (castPtr pc) (fromIntegral off) (v :: Word8)
+                     v <- f <$> peekByteOff' pa (fromIntegral off)
+                            <*> peekByteOff' pb (fromIntegral off)
+                     pokeByteOff' (castPtr pc) (fromIntegral off) (v :: Word8)
             bufferUnsafePackPtr (bufferSize a) pc
 
 -- | Unsafe: be careful if you modify the buffer contents or you may break
@@ -185,7 +185,7 @@ bufferPeekStorableAt :: forall a.
 bufferPeekStorableAt b n
    | n + sza > bufferSize b = error "Invalid buffer index"
    | otherwise = unsafePerformIO $ withBufferPtr b $ \p ->
-      peekByteOff p (fromIntegral n)
+      peekByteOff' p (fromIntegral n)
    where
       sza = sizeOf @a
    
@@ -198,7 +198,7 @@ bufferPopStorable :: forall a.
 bufferPopStorable buf
    | bufferSize buf < sza = error "bufferRead: out of bounds"
    | otherwise            = unsafePerformIO $ do
-         a <- withBufferPtr buf peek
+         a <- withBufferPtr buf peek'
          return (bufferDrop sza buf, a)
    where
       sza = sizeOf @a
@@ -292,7 +292,7 @@ bufferPackStorable :: forall a.
 bufferPackStorable x = Buffer $ unsafePerformIO $ do
    let sza = sizeOf @a
    p <- mallocBytes (fromIntegral sza)
-   poke p x
+   poke' p x
    BS.unsafePackMallocCStringLen (castPtr p, fromIntegral sza)
 
 -- | Pack a list of Storable
@@ -306,7 +306,7 @@ bufferPackStorableList xs = Buffer $ unsafePerformIO $ do
       lxs = length xs
    p <- mallocBytes (fromIntegral (lxs * sza))
    forM_ (xs `zip` [0..]) $ \(x,o) ->
-      pokeElemOff p o x
+      pokeElemOff' p o x
    BS.unsafePackMallocCStringLen (castPtr p, sza * lxs)
 
 -- | Pack from a pointer (copy)

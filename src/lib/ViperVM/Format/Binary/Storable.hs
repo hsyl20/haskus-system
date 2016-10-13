@@ -8,31 +8,35 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE DefaultSignatures #-}
 
 -- | Storable class
 module ViperVM.Format.Binary.Storable
    ( Storable (..)
+   , GStorable (..)
    , sizeOf
    , alignment
+   , MemoryLayout (..)
    -- * Peek/Poke
-   , peekFrom
-   , pokeFrom
    , peek
    , poke
-   , peekByteOffFrom
-   , pokeByteOffFrom
+   , peek'
+   , poke'
    , peekByteOff
    , pokeByteOff
-   , peekElemOffFrom
-   , pokeElemOffFrom
+   , peekByteOff'
+   , pokeByteOff'
    , peekElemOff
    , pokeElemOff
+   , peekElemOff'
+   , pokeElemOff'
    , peekShow
    , unsafePeekShow
-   , peekArrayFrom
-   , pokeArrayFrom
    , peekArray
    , pokeArray
+   , peekArray'
+   , pokeArray'
    , malloc
    , mallocPoke
    , mallocDup
@@ -40,8 +44,7 @@ module ViperVM.Format.Binary.Storable
    , allocaBytes
    , alloca
    , with
-   -- * Explicit layout
-   , WithLayout (..)
+   , withMaybeOrNull
    )
 where
 
@@ -52,155 +55,218 @@ import ViperVM.Format.Binary.Layout
 import ViperVM.Format.Binary.Word
 import ViperVM.Format.Binary.Ptr
 import ViperVM.Utils.Types
+import ViperVM.Utils.Types.Generics
 import ViperVM.Utils.Memory
 import System.IO.Unsafe
+
+------------------------------------------------
+-- Storable instance deriving from Generic
+------------------------------------------------
+
+-- | Store a field 'a' with layout 'l'
+class GStorable l a where
+   gcPeek      :: Ptr l -> IO (a x)
+   gcPoke      :: Ptr l -> a x -> IO ()
+
+-- constructor without argument
+instance GStorable l U1 where
+   gcPeek _    = return U1
+   gcPoke _ _  = return ()
+
+-- passthrough data type metadata
+instance (GStorable l a) => GStorable l (M1 D c a) where
+  gcPeek p           = M1 <$> gcPeek p
+  gcPoke p (M1 x)    = gcPoke p x
+
+-- passthrough constructor metadata (we only support a single constructor
+-- because there is no instance for (:+:))
+instance (GStorable l a) => GStorable l (M1 C c a) where
+  gcPeek p           = M1 <$> gcPeek p
+  gcPoke p (M1 x)    = gcPoke p x
+
+-- passthrough field product binary operator
+instance (GStorable l a, GStorable l b) => GStorable l (a :*: b) where
+   gcPeek p           = (:*:) <$> gcPeek p <*> gcPeek p
+   gcPoke p (a :*: b) = gcPoke p a >> gcPoke p b
+
+-- peek field from the field selector
+instance
+   ( Storable t t
+   , KnownNat (LayoutPathOffset l (LayoutPath '[LayoutSymbol name]))
+   , t ~ LayoutPathType l (LayoutPath '[LayoutSymbol name])
+   ) => GStorable l (M1 S ('MetaSel ('Just name) u v w) (K1 R t))
+   where
+      gcPeek p             = (M1 . K1) <$> peekPtr (p --> LayoutSymbol @name)
+      gcPoke p (M1 (K1 x)) = pokePtr (p --> LayoutSymbol @name) x
+
+------------------------------------------------
+-- Storable instance
+------------------------------------------------
 
 -- | 'e' is a storable data that can be read/written from/into memory with the
 -- representation 'r'
 class Storable r e | r -> e where
-   -- | Size of the stored data (in bytes)
-   type SizeOf r    :: Nat
-
-   -- | Alignment requirement (in bytes)
-   type Alignment r :: Nat
-
    -- | Peek (read) a value from a memory address
    peekPtr :: Ptr r -> IO e
+
+   default peekPtr :: (Generic e, GStorable r (Rep e)) => Ptr r -> IO e
+   peekPtr p = fmap to $ gcPeek p
 
    -- | Poke (write) a value at the given memory address
    pokePtr :: Ptr r -> e -> IO ()
 
+   default pokePtr :: (Generic e, GStorable r (Rep e)) => Ptr r -> e -> IO ()
+   pokePtr p x = gcPoke p $ from x
+
 -- | Get statically known size
 sizeOf :: forall r. KnownNat (SizeOf r) => Word
-sizeOf = fromIntegral (natVal (Proxy :: Proxy (SizeOf r)))
+sizeOf = natValue @(SizeOf r)
 
 -- | Get statically known alignment
 alignment :: forall r. KnownNat (Alignment r) => Word
-alignment = fromIntegral (natVal (Proxy :: Proxy (Alignment r)))
+alignment = natValue @(Alignment r)
 
-instance Storable Word8 Word8 where
+instance MemoryLayout Word8 where
    type SizeOf    Word8 = 1
    type Alignment Word8 = 1
-   peekPtr              = FS.peek
-   pokePtr              = FS.poke
 
-instance Storable Word16 Word16 where
+instance MemoryLayout Word16 where
    type SizeOf    Word16 = 2
    type Alignment Word16 = 2
-   peekPtr               = FS.peek
-   pokePtr               = FS.poke
 
-instance Storable Word32 Word32 where
+instance MemoryLayout Word32 where
    type SizeOf    Word32 = 4
    type Alignment Word32 = 4
-   peekPtr               = FS.peek
-   pokePtr               = FS.poke
 
-instance Storable Word64 Word64 where
+instance MemoryLayout Word64 where
    type SizeOf    Word64 = 8
    type Alignment Word64 = 8
-   peekPtr               = FS.peek
-   pokePtr               = FS.poke
 
-instance Storable Int8 Int8 where
+instance MemoryLayout Int8 where
    type SizeOf    Int8 = 1
    type Alignment Int8 = 1
-   peekPtr             = FS.peek
-   pokePtr             = FS.poke
 
-instance Storable Int16 Int16 where
+instance MemoryLayout Int16 where
    type SizeOf    Int16 = 2
    type Alignment Int16 = 2
-   peekPtr              = FS.peek
-   pokePtr              = FS.poke
 
-instance Storable Int32 Int32 where
+instance MemoryLayout Int32 where
    type SizeOf    Int32 = 4
    type Alignment Int32 = 4
-   peekPtr              = FS.peek
-   pokePtr              = FS.poke
 
-instance Storable Int64 Int64 where
+instance MemoryLayout Int64 where
    type SizeOf    Int64 = 8
    type Alignment Int64 = 8
-   peekPtr              = FS.peek
-   pokePtr              = FS.poke
+
+instance Storable Word8 Word8 where
+   peekPtr = FS.peek
+   pokePtr = FS.poke
+
+instance Storable Word16 Word16 where
+   peekPtr = FS.peek
+   pokePtr = FS.poke
+
+instance Storable Word32 Word32 where
+   peekPtr = FS.peek
+   pokePtr = FS.poke
+
+instance Storable Word64 Word64 where
+   peekPtr = FS.peek
+   pokePtr = FS.poke
+
+instance Storable Int8 Int8 where
+   peekPtr = FS.peek
+   pokePtr = FS.poke
+
+instance Storable Int16 Int16 where
+   peekPtr = FS.peek
+   pokePtr = FS.poke
+
+instance Storable Int32 Int32 where
+   peekPtr = FS.peek
+   pokePtr = FS.poke
+
+instance Storable Int64 Int64 where
+   peekPtr = FS.peek
+   pokePtr = FS.poke
 
 
 ---------------------------------------------------------------------
 -- Peek / Poke
 ---------------------------------------------------------------------
 
-peekFrom :: (PtrLike p, Storable a b) => p a -> IO b
-{-# INLINE peekFrom #-}
-peekFrom p = withPtr p peekPtr
-
-pokeFrom :: (PtrLike p, Storable a b) => p a -> b -> IO ()
-{-# INLINE pokeFrom #-}
-pokeFrom p b = withPtr p (`pokePtr` b)
-
-peek :: (PtrLike p, Storable a a) => p a -> IO a
+peek :: (PtrLike p, Storable a b) => p a -> IO b
 {-# INLINE peek #-}
-peek = peekFrom
+peek p = withPtr p peekPtr
 
-poke :: (PtrLike p, Storable a a) => p a -> a -> IO ()
+poke :: (PtrLike p, Storable a b) => p a -> b -> IO ()
 {-# INLINE poke #-}
-poke = pokeFrom
+poke p b = withPtr p (`pokePtr` b)
 
-peekByteOffFrom :: (PtrLike p, Storable a b) => p a -> Int -> IO b
-{-# INLINE peekByteOffFrom #-}
-peekByteOffFrom p n = withPtr (p `indexPtr` n) peekPtr
+-- | Peek specialized for primitives
+peek' :: (PtrLike p, Storable a a) => p a -> IO a
+{-# INLINE peek' #-}
+peek' = peek
 
-pokeByteOffFrom :: (PtrLike p, Storable a b) => p a -> Int -> b -> IO ()
-{-# INLINE pokeByteOffFrom #-}
-pokeByteOffFrom p n b = withPtr (p `indexPtr` n) (`pokePtr` b)
+-- | Poke specialized for primitives
+poke' :: (PtrLike p, Storable a a) => p a -> a -> IO ()
+{-# INLINE poke' #-}
+poke' = poke
 
-peekByteOff :: (PtrLike p, Storable a a) => p a -> Int -> IO a
+peekByteOff :: (PtrLike p, Storable a b) => p a -> Int -> IO b
 {-# INLINE peekByteOff #-}
-peekByteOff = peekByteOffFrom
+peekByteOff p n = withPtr (p `indexPtr` n) peekPtr
 
-pokeByteOff :: (PtrLike p, Storable a a) => p a -> Int -> a -> IO ()
+pokeByteOff :: (PtrLike p, Storable a b) => p a -> Int -> b -> IO ()
 {-# INLINE pokeByteOff #-}
-pokeByteOff = pokeByteOffFrom
+pokeByteOff p n b = withPtr (p `indexPtr` n) (`pokePtr` b)
 
-peekElemOffFrom :: forall p a b.
+peekByteOff' :: (PtrLike p, Storable a a) => p a -> Int -> IO a
+{-# INLINE peekByteOff' #-}
+peekByteOff' = peekByteOff
+
+pokeByteOff' :: (PtrLike p, Storable a a) => p a -> Int -> a -> IO ()
+{-# INLINE pokeByteOff' #-}
+pokeByteOff' = pokeByteOff
+
+peekElemOff :: forall p a b.
    ( PtrLike p
    , Storable a b
    , KnownNat (SizeOf a)
    ) => p a -> Int -> IO b
-{-# INLINE peekElemOffFrom #-}
-peekElemOffFrom p n = withPtr (p `indexPtr` off) peekPtr
+{-# INLINE peekElemOff #-}
+peekElemOff p n = withPtr (p `indexPtr` off) peekPtr
    where off = n * fromIntegral (sizeOf @a)
 
-pokeElemOffFrom :: forall p a b.
+pokeElemOff :: forall p a b.
    ( PtrLike p
    , Storable a b
    , KnownNat (SizeOf a)
    ) => p a -> Int -> b -> IO ()
-{-# INLINE pokeElemOffFrom #-}
-pokeElemOffFrom p n b = withPtr (p `indexPtr` off) (`pokePtr` b)
+{-# INLINE pokeElemOff #-}
+pokeElemOff p n b = withPtr (p `indexPtr` off) (`pokePtr` b)
    where off = n * fromIntegral (sizeOf @a)
 
-peekElemOff :: forall p a.
+peekElemOff' :: forall p a.
    ( PtrLike p
    , Storable a a
    , KnownNat (SizeOf a)
    ) => p a -> Int -> IO a
-{-# INLINE peekElemOff #-}
-peekElemOff = peekElemOffFrom
+{-# INLINE peekElemOff' #-}
+peekElemOff' = peekElemOff
 
-pokeElemOff :: forall p a.
+pokeElemOff' :: forall p a.
    ( PtrLike p
    , Storable a a
    , KnownNat (SizeOf a)
    ) => p a -> Int -> a -> IO ()
-{-# INLINE pokeElemOff #-}
-pokeElemOff = pokeElemOffFrom
+{-# INLINE pokeElemOff' #-}
+pokeElemOff' = pokeElemOff
 
 -- | Show the element which is pointed at
 peekShow :: (Show b, PtrLike p, Storable a b) => p a -> IO String
 {-# INLINE peekShow #-}
-peekShow p = show <$> peekFrom p
+peekShow p = show <$> peek p
 
 -- | Show the element which is pointed at
 unsafePeekShow :: (Show b, PtrLike p, Storable a b) => p a -> String
@@ -208,50 +274,50 @@ unsafePeekShow :: (Show b, PtrLike p, Storable a b) => p a -> String
 unsafePeekShow = unsafePerformIO . peekShow
 
 -- | Peek 'n' elements
-peekArrayFrom ::
+peekArray ::
    ( PtrLike p
    , Storable a b
    , KnownNat (SizeOf a)
    ) => Word -> p a -> IO [b]
-{-# INLINE peekArrayFrom #-}
-peekArrayFrom n p = go [] (fromIntegral n)
+{-# INLINE peekArray #-}
+peekArray n p = go [] (fromIntegral n)
    where
       go xs 0 = return xs
       go xs i = do
-         x <- peekElemOffFrom p i
+         x <- peekElemOff p i
          go (x:xs) (i-1)
-
--- | Poke all the elements in the list
-pokeArrayFrom ::
-   ( PtrLike p
-   , Storable a b
-   , KnownNat (SizeOf a)
-   ) => p a -> [b] -> IO ()
-{-# INLINE pokeArrayFrom #-}
-pokeArrayFrom p bs = go 0 bs
-   where
-      go _ []     = return ()
-      go i (x:xs) = do
-         pokeElemOffFrom p i x 
-         go (i+1) xs
-
--- | Peek 'n' elements
-peekArray ::
-   ( PtrLike p
-   , Storable a a
-   , KnownNat (SizeOf a)
-   ) => Word -> p a -> IO [a]
-{-# INLINE peekArray #-}
-peekArray = peekArrayFrom
 
 -- | Poke all the elements in the list
 pokeArray ::
    ( PtrLike p
+   , Storable a b
+   , KnownNat (SizeOf a)
+   ) => p a -> [b] -> IO ()
+{-# INLINE pokeArray #-}
+pokeArray p bs = go 0 bs
+   where
+      go _ []     = return ()
+      go i (x:xs) = do
+         pokeElemOff p i x 
+         go (i+1) xs
+
+-- | Peek 'n' elements
+peekArray' ::
+   ( PtrLike p
+   , Storable a a
+   , KnownNat (SizeOf a)
+   ) => Word -> p a -> IO [a]
+{-# INLINE peekArray' #-}
+peekArray' = peekArray
+
+-- | Poke all the elements in the list
+pokeArray' ::
+   ( PtrLike p
    , Storable a a
    , KnownNat (SizeOf a)
    ) => p a -> [a] -> IO ()
-{-# INLINE pokeArray #-}
-pokeArray = pokeArrayFrom
+{-# INLINE pokeArray' #-}
+pokeArray' = pokeArray
 
 -- | Allocate memory able to contain 'a'
 malloc :: forall a p.
@@ -268,7 +334,7 @@ mallocPoke :: forall a b p.
    ) => b -> IO (p a)
 mallocPoke b = do
    p <- malloc
-   pokeFrom p b
+   poke p b
    return p
 
 -- | Temporarily allocate some bytes
@@ -287,8 +353,17 @@ with :: forall a b c.
    , KnownNat (SizeOf a)
    ) => c -> (Ptr a -> IO b) -> IO b
 with c f = alloca $ \p -> do
-   pokeFrom p c
+   poke p c
    f p
+
+-- | Execute f with a pointer to 'a' or NULL
+withMaybeOrNull :: forall r e b.
+   ( Storable r e
+   , KnownNat (SizeOf r)
+   ) => Maybe e -> (Ptr r -> IO b) -> IO b
+withMaybeOrNull s f = case s of
+   Nothing -> f nullPtr
+   Just x  -> with x f
 
 -- | Copy from a pointer to another
 copy :: forall a p1 p2.
@@ -311,20 +386,9 @@ mallocDup fp1 = do
    fp2 <- mallocBytes (natValue @(SizeOf a))
    fp1 `copy` fp2
    return fp2
--- | Explicit layout
-newtype WithLayout (r :: * -> *) e = WithLayout e deriving (Show,Eq,Ord)
-
-type instance LayoutPathType (WithLayout r e) (LayoutPath (p ': ps))
-   = LayoutPathType (r e) (LayoutPath (p ': ps))
-
-type instance LayoutPathOffset (WithLayout r e) (LayoutPath (p ': ps))
-   = LayoutPathOffset (r e) (LayoutPath (p ': ps))
 
 instance Storable (r e) e => Storable (WithLayout r e) (WithLayout r e)
    where
-      type SizeOf    (WithLayout r e) = SizeOf (r e)
-      type Alignment (WithLayout r e) = Alignment (r e)
       peekPtr p = WithLayout <$> peekPtr (castPtr p :: Ptr (r e))
-
       pokePtr p (WithLayout e) = pokePtr (castPtr p :: Ptr (r e)) e
 

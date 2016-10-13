@@ -337,7 +337,7 @@ syscall_kill = syscall2 62
 {-# INLINE syscall_kill #-}
 
 -- | uname
-syscall_uname :: Ptr () -> IO Int64
+syscall_uname :: Ptr a -> IO Int64
 syscall_uname = syscall1 63
 {-# INLINE syscall_uname #-}
 
@@ -643,7 +643,8 @@ syscall_syncfs = syscall1 306
 {-# INLINE syscall_syncfs #-}
 
 -- | getcpu
-syscall_getcpu :: Ptr Word -> Ptr Word -> Ptr a -> IO Int64
+-- Parameters are defined as Word (which are Word64 on X86_64)
+syscall_getcpu :: Ptr Word64 -> Ptr Word64 -> Ptr a -> IO Int64
 syscall_getcpu = syscall3 309
 {-# INLINE syscall_getcpu #-}
 

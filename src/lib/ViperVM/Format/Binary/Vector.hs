@@ -42,21 +42,25 @@ instance
    ) => Show (Vector n a) where
    show v = "fromList " ++ show (toList v)
 
+instance MemoryLayout (VectorLayout n e) where
+   type SizeOf    (VectorLayout n e) = n * SizeOf e
+   type Alignment (VectorLayout n e) = Alignment e
+
 instance
    ( KnownNat (n * SizeOf e)
    ) => Storable (VectorLayout n e) (Vector n e)
    where
-   type SizeOf    (VectorLayout n e) = n * SizeOf e
-   type Alignment (VectorLayout n e) = Alignment e
    peekPtr p              = Vector <$> mallocDup (castPtr p)
    pokePtr p2 (Vector p1) = castPtr p1 `copy` p2
+
+instance MemoryLayout (Vector n e) where
+   type SizeOf    (Vector n e) = SizeOf    (VectorLayout n e)
+   type Alignment (Vector n e) = Alignment (VectorLayout n e)
 
 instance
       ( KnownNat (n * SizeOf e)
       ) => Storable (Vector n e) (Vector n e)
    where
-   type SizeOf    (Vector n e) = SizeOf    (VectorLayout n e)
-   type Alignment (Vector n e) = Alignment (VectorLayout n e)
    peekPtr p              = Vector <$> mallocDup (castPtr p)
    pokePtr p2 (Vector p1) = castPtr p1 `copy` p2
 

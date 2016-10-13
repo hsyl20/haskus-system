@@ -36,6 +36,4 @@ type family PackedStructFieldOffset' (fs :: [*]) (name :: Symbol) (sz :: Nat) wh
    PackedStructFieldOffset' (Field xx typ ': fs)   name sz =
       PackedStructFieldOffset' fs name (sz + SizeOf typ)
 
--- | Convert an Haskell data-type into a PackedStructLayout
-type family PackedStruct a where
-   PackedStruct a = PackedStructLayout (ExtractFields a)
+newtype PackedStruct a = PackedStruct a

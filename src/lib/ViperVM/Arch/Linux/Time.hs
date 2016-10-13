@@ -3,6 +3,8 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE TypeApplications #-}
 
 -- | Linux time
 module ViperVM.Arch.Linux.Time
@@ -36,17 +38,11 @@ data TimeSpec = TimeSpec {
    tsNanoSeconds  :: {-# UNPACK #-} !Int64
 } deriving (Show,Eq,Ord,Generic)
 
-instance Storable TimeSpec TimeSpec where
-   peekPtr = peekStructCons TimeSpec
-
 -- | Time val
 data TimeVal = TimeVal
    { tvSeconds       :: Word64
    , tvMicroSeconds  :: Word64
    } deriving (Show, Eq, Ord, Generic)
-
-instance Storable TimeVal TimeVal where
-   peekPtr = peekStructCons TimeVal
 
 -- | Timeval difference in microseconds
 timeValDiff :: TimeVal -> TimeVal -> Word64
@@ -100,32 +96,32 @@ instance Enum Clock where
 -- | Retrieve clock time
 sysClockGetTime :: Clock -> SysRet TimeSpec
 sysClockGetTime clk =
-   alloca $ \(t :: Ptr TimeSpec) ->
+   alloca @(Struct TimeSpec) $ \t ->
       onSuccessIO (syscall_clock_gettime (fromEnum clk) t) (const $ peek t)
 
 -- | Set clock time
 sysClockSetTime :: Clock -> TimeSpec -> SysRet ()
 sysClockSetTime clk time =
-   with time $ \(t :: Ptr TimeSpec) ->
+   withStruct time $ \t ->
       onSuccess (syscall_clock_settime (fromEnum clk) t) (const ())
 
 -- | Retrieve clock resolution
 sysClockGetResolution :: Clock -> SysRet TimeSpec
 sysClockGetResolution clk =
-   alloca $ \(t :: Ptr TimeSpec) ->
+   alloca @(Struct TimeSpec) $ \t ->
       onSuccessIO (syscall_clock_getres (fromEnum clk) t) (const $ peek t)
 
 -- | Retrieve time of day
 sysGetTimeOfDay :: SysRet TimeVal
 sysGetTimeOfDay =
-   alloca $ \(tv :: Ptr TimeVal) ->
+   alloca @(Struct TimeVal) $ \tv ->
       -- timezone arg is deprecated (NULL passed instead)
       onSuccessIO (syscall_gettimeofday tv nullPtr) (const $ peek tv)
 
 -- | Set time of day
 sysSetTimeOfDay :: TimeVal -> SysRet ()
 sysSetTimeOfDay tv =
-   with tv $ \ptv ->
+   with tv $ \(ptv :: Ptr (Struct TimeVal)) ->
       -- timezone arg is deprecated (NULL passed instead)
       onSuccessVoid (syscall_settimeofday ptv nullPtr)
 
@@ -140,9 +136,9 @@ data SleepResult
 -- Can be interrupted by a signal (in this case it returns the remaining time)
 sysNanoSleep :: TimeSpec -> SysRet SleepResult
 sysNanoSleep ts =
-   with ts $ \ts' ->
-      alloca $ \(rem' :: Ptr TimeSpec) -> do
-         ret <- syscall_nanosleep ts' rem'
+   with ts $ \(pts :: Ptr (Struct TimeSpec)) ->
+      alloca $ \(rem' :: Ptr (Struct TimeSpec)) -> do
+         ret <- syscall_nanosleep pts rem'
          case defaultCheck ret of
             Nothing    -> flowRet0 CompleteSleep
             Just EINTR -> flowRet0 =<< (WokenUp <$> peek rem')
