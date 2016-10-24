@@ -1,0 +1,34 @@
+table {
+   border: solid gray 1px;
+   border-collapse: collapse;
+}
+
+td, th {
+   border: solid gray 1px;
+   padding-left: 1em;
+   padding-right: 1em;
+}
+
+.invalid {
+   font-style:italic;
+}
+
+.sym_undefined {
+   color: blue;
+}
+
+.sym_absolute {
+   color: brown;
+}
+
+.sym_global {
+   color: green;
+}
+
+.sym_local {
+   color: black;
+}
+
+.sym_weak {
+   color: red;
+}
