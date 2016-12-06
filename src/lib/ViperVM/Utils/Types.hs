@@ -10,6 +10,7 @@
 module ViperVM.Utils.Types
    ( Nat
    , Symbol
+   , natVal
    , natValue
    , natValue'
    , symbolValue

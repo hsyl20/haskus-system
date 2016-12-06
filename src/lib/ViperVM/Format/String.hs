@@ -1,6 +1,9 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE KindSignatures #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 -- | Various String formats (C string, etc.)
 module ViperVM.Format.String
@@ -33,7 +36,8 @@ import ViperVM.Utils.Monad
 -- | Fixed-size buffer containing a CString
 newtype CStringBuffer (n :: Nat)
    = CStringBuffer (Vector n Int8)
-   deriving (Storable)
+
+$(makeStorable ''CStringBuffer)
 
 instance KnownNat n => Show (CStringBuffer n) where
    show = show . fromCStringBuffer

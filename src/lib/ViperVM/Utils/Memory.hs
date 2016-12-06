@@ -1,4 +1,7 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 -- | Memory utilities
 module ViperVM.Utils.Memory
@@ -9,6 +12,7 @@ module ViperVM.Utils.Memory
    , pokeArrays
    , withArrays
    , withMaybeOrNull
+   , wordBytes
    )
 where
 
@@ -16,6 +20,8 @@ import ViperVM.Format.Binary.Word
 import ViperVM.Format.Binary.Ptr
 import ViperVM.Format.Binary.Storable
 import ViperVM.Utils.Flow
+import ViperVM.Utils.Types
+import System.IO.Unsafe
 
 -- | Copy memory
 memCopy :: MonadIO m => Ptr a -> Ptr b -> Word64 -> m ()
@@ -37,26 +43,26 @@ foreign import ccall unsafe memset  :: Ptr a -> Word8 -> Word64 -> IO (Ptr c)
 
 
 -- | Allocate several arrays
-allocaArrays :: (MonadInIO m, Storable s, Integral a) => [a] -> ([Ptr s] -> m b) -> m b
+allocaArrays :: (MonadInIO m, IsStorable s, Integral a) => [a] -> ([Ptr s] -> m b) -> m b
 allocaArrays sizes f = go [] sizes
    where
       go as []     = f (reverse as)
       go as (x:xs) = allocaArray (fromIntegral x) $ \a -> go (a:as) xs
 
 -- | Peek several arrays
-peekArrays :: (MonadIO m, Storable s, Integral a) => [a] -> [Ptr s] -> m [[s]]
+peekArrays :: (MonadIO m, IsStorable s, Integral a) => [a] -> [Ptr s] -> m [[s]]
 peekArrays szs ptrs = mapM f (szs `zip` ptrs)
    where
       f (sz,p) = peekArray (fromIntegral sz) p
 
 -- | Poke several arrays
-pokeArrays :: (MonadIO m, Storable s) => [Ptr s] -> [[s]] -> m ()
+pokeArrays :: (MonadIO m, IsStorable s) => [Ptr s] -> [[s]] -> m ()
 pokeArrays ptrs vs = mapM_ f (ptrs `zip` vs)
    where
       f = uncurry pokeArray
 
 -- | Allocate several arrays
-withArrays :: (MonadInIO m, Storable s) => [[s]] -> ([Ptr s] -> m b) -> m b
+withArrays :: (MonadInIO m, IsStorable s) => [[s]] -> ([Ptr s] -> m b) -> m b
 withArrays vs f = go [] vs
    where
       go as []     = f (reverse as)
@@ -64,9 +70,15 @@ withArrays vs f = go [] vs
 
 -- | Execute f with a pointer to 'a' or NULL
 withMaybeOrNull ::
-   ( Storable a
+   ( IsStorable a
    , MonadInIO m
    ) => Maybe a -> (Ptr a -> m b) -> m b
 withMaybeOrNull s f = case s of
    Nothing -> f nullPtr
    Just x  -> with x f
+
+-- | Get bytes in host-endianness order
+wordBytes :: forall a. (IsStorable a) => a -> [Word8]
+{-# INLINE wordBytes #-}
+wordBytes x = unsafePerformIO $
+   with x $ \p -> mapM (peekByteOff (castPtr p)) [0..natValue @(SizeOf a) - 1]

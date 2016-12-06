@@ -1,6 +1,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE TypeApplications #-}
 
@@ -29,7 +30,9 @@ import ViperVM.Utils.Flow
 import ViperVM.Utils.Memory
 
 -- | Signal set
-newtype SignalSet = SignalSet (Vector 16 Word64) deriving (Storable)
+newtype SignalSet = SignalSet (Vector 16 Word64)
+
+$(makeStorable ''SignalSet)
 
 -- | Pause
 sysPause :: MonadIO m => Flow m '[(),ErrorCode]

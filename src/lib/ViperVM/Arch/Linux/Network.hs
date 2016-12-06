@@ -1,6 +1,4 @@
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeApplications #-}
 
@@ -25,7 +23,6 @@ module ViperVM.Arch.Linux.Network
    )
 where
 
-import ViperVM.Utils.Types.Generics (Generic)
 import ViperVM.Utils.List (foldl')
 import ViperVM.Utils.Flow
 import ViperVM.Arch.Linux.ErrorCode
@@ -322,7 +319,9 @@ sysListen (Handle fd) backlog =
 -- | Netlink socket binding
 data NetlinkSocket
    = NetlinkSocket Word32 Word32 Word32
-   deriving (Generic, Storable)
+   deriving (Show)
+
+$(makeStorable ''NetlinkSocket)
 
 -- | Bind a netlink socket
 --

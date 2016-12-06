@@ -1,5 +1,3 @@
-{-# LANGUAGE DeriveAnyClass #-}
-{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE DeriveDataTypeable #-}
@@ -92,7 +90,6 @@ import ViperVM.Arch.Linux.Ioctl
 import ViperVM.Utils.Flow
 import ViperVM.Utils.Maybe
 import ViperVM.Utils.Embed
-import ViperVM.Utils.Types.Generics (Generic)
 
 import Data.Data
 import System.IO.Unsafe (unsafePerformIO)
@@ -901,7 +898,9 @@ data Event = Event
    , eventType  :: !(EnumField Word16 EventType)
    , eventCode  :: !Word16
    , eventValue :: !Int32
-   } deriving (Show,Eq,Generic,Storable)
+   } deriving (Show,Eq)
+
+$(makeStorable ''Event)
 
 -- | Protocol version
 protocolVersion :: Word
@@ -917,7 +916,9 @@ data DeviceInfo = DeviceInfo
    , infoVendor  :: !Word16
    , infoProduct :: !Word16
    , infoVersion :: !Word16
-   } deriving (Show,Eq,Generic,Storable)
+   } deriving (Show,Eq)
+
+$(makeStorable ''DeviceInfo)
 
 -- | Absolute info
 --
@@ -946,7 +947,9 @@ data AbsoluteInfo = AbsoluteInfo
    , absFuzz       :: !Int32   -- ^ Fuzz value used to filter noise from the event stream
    , absFlat       :: !Int32   -- ^ Values that are within this value will be discarded and reported as 0 instead
    , absResolution :: !Int32   -- ^ Resolution for the values reported for the axis
-   } deriving (Show, Eq, Generic, Storable)
+   } deriving (Show,Eq)
+
+$(makeStorable ''AbsoluteInfo)
 
 -- | Query or modify keymap data
 --
@@ -970,7 +973,9 @@ data KeymapEntry = KeymapEntry
    , keymapEntryIndex    :: !Word16                    -- ^ Index in the keymap (may be used instead of the scancode)
    , keymapEntryKeyCode  :: !Word32                    -- ^ Key code assigned to this scancode
    , keymapEntryScanCode :: !(Vector 32 Word8)         -- ^ Scan in machine-endian form (up to 32 bytes)
-   } deriving (Show,Generic,Storable)
+   } deriving (Show)
+
+$(makeStorable ''KeymapEntry)
 
 
 data KeymapFlag
@@ -983,7 +988,9 @@ data EventMask = EventMask
    , maskCodesSize :: !Word32
    , maskCodesPtr  :: !Word64
    }
-   deriving (Show,Eq,Generic,Storable)
+   deriving (Show,Eq)
+
+$(makeStorable ''EventMask)
 
 -- | Get version
 --
@@ -1004,7 +1011,9 @@ data RepeatSettings = RepeatSettings
    { repeatDelay  :: !Word
    , repeatPeriod :: !Word
    }
-   deriving (Show,Eq,Generic,Storable)
+   deriving (Show,Eq)
+
+$(makeStorable ''RepeatSettings)
 
 -- | Get repeat settings
 --
@@ -1306,13 +1315,17 @@ data ForceFeedbackStatus
 data ForceFeedbackReplay = ForceFeedbackReplay
    { ffReplayLength :: !Word16 -- ^ Duration of the effect
    , ffReplayDelay  :: !Word16 -- ^ Delay before effect should start playing
-   } deriving (Show,Eq,Generic,Storable)
+   } deriving (Show,Eq)
+
+$(makeStorable ''ForceFeedbackReplay)
 
 -- | Defines what triggers the force-feedback effect
 data ForceFeedbackTrigger = ForceFeedbackTrigger
    { ffTriggerButton   :: !Word16 -- ^ number of the button triggering the effect
    , ffTriggerInterval :: !Word16 -- ^ controls how soon the effect can be re-triggered
-   } deriving (Show,Eq,Generic,Storable)
+   } deriving (Show,Eq)
+
+$(makeStorable ''ForceFeedbackTrigger)
 
 -- | Generic force-feedback effect envelope
 --
@@ -1325,20 +1338,26 @@ data ForceFeedbackEnvelope = ForceFeedbackEnvelope
    , ffEnvelopeAttackLevel  :: !Word16 -- ^ level at the beginning of the attack
    , ffEnvelopeFadeLength   :: !Word16 -- ^ duration of fade (ms)
    , ffEnvelopeFadeLevel    :: !Word16 -- ^ level at the end of fade
-   } deriving (Eq,Show,Generic,Storable)
+   } deriving (Eq,Show)
+
+$(makeStorable ''ForceFeedbackEnvelope)
 
 -- | Defines parameters of a constant force-feedback effect
 data ForceFeedbackConstantEffect = ForceFeedbackConstantEffect
    { ffConstantEffectLevel    :: !Int16                 -- ^ strength of the effect; may be negative
    , ffConstantEffectEnvelope :: !ForceFeedbackEnvelope -- ^ envelope data
-   } deriving (Eq,Show,Generic,Storable)
+   } deriving (Eq,Show)
+
+$(makeStorable ''ForceFeedbackConstantEffect)
 
 -- | Defines parameters of a ramp force-feedback effect
 data ForceFeedbackRampEffect = ForceFeedbackRampEffect
    { ffRampEffectStartLevel :: !Int16                 -- ^ beginning strength of the effect; may be negative
    , ffRampEffectEndLevel   :: !Int16                 -- ^ final strength of the effect; may be negative
    , ffRampEffectEnvelope   :: !ForceFeedbackEnvelope -- ^ envelope data
-   } deriving (Eq,Show,Generic,Storable)
+   } deriving (Eq,Show)
+
+$(makeStorable ''ForceFeedbackRampEffect)
 
 -- | Defines a spring or friction force-feedback effect
 data ForceFeedbackConditionEffect = ForceFeedbackConditionEffect
@@ -1348,7 +1367,9 @@ data ForceFeedbackConditionEffect = ForceFeedbackConditionEffect
    , ffConditionEffectLeftCoeff       :: !Int16  -- ^ same for the left side
    , ffConditionEffectDeadBand        :: !Word16 -- ^ size of the dead zone, where no force is produced
    , ffConditionEffectCenter          :: !Int16  -- ^ position of the dead zone
-   } deriving (Eq,Show,Generic,Storable)
+   } deriving (Eq,Show)
+
+$(makeStorable ''ForceFeedbackConditionEffect)
 
 -- | Defines parameters of a periodic force-feedback effect
 -- Known waveforms - FF_SQUARE, FF_TRIANGLE, FF_SINE, FF_SAW_UP,
@@ -1366,7 +1387,9 @@ data ForceFeedbackPeriodicEffect = ForceFeedbackPeriodicEffect
    , ffPeriodicEffectEnvelope   :: !ForceFeedbackEnvelope -- ^ envelope data
    , ffPeriodicEffectCustomLen  :: !Word32                -- ^ number of samples (FF_CUSTOM only)
    , ffPeriodicEffectCustomData :: !(Ptr Int16)           -- ^ buffer of samples (FF_CUSTOM only)
-   } deriving (Eq,Show,Generic,Storable)
+   } deriving (Eq,Show)
+
+$(makeStorable ''ForceFeedbackPeriodicEffect)
 
 -- | Defines parameters of a periodic force-feedback effect
 --
@@ -1375,7 +1398,9 @@ data ForceFeedbackPeriodicEffect = ForceFeedbackPeriodicEffect
 data ForceFeedbackRumbleEffect = ForceFeedbackRumbleEffect
    { ffRumbleEffectStrongMagnitude :: !Word16 -- ^ magnitude of the heavy motor
    , ffRumbleEffectWeakMagnitude   :: !Word16 -- ^ magnitude of the light one
-   } deriving (Eq,Show,Generic,Storable)
+   } deriving (Eq,Show)
+
+$(makeStorable ''ForceFeedbackRumbleEffect)
 
 
 -- | Force feedback effect
@@ -1413,7 +1438,9 @@ data ForceFeedbackEffect = ForceFeedbackEffect
                                   , Vector 2 ForceFeedbackConditionEffect -- one for each axis
                                   , ForceFeedbackRumbleEffect
                                   ])
-   } deriving (Show,Generic,Storable)
+   } deriving (Show)
+
+$(makeStorable ''ForceFeedbackEffect)
 
 -- | Force feedback effect type
 data ForceFeedbackEffectType

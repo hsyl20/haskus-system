@@ -1,8 +1,10 @@
-{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 -- | System info (uname)
 module ViperVM.Arch.Linux.Info
@@ -16,7 +18,6 @@ import ViperVM.Arch.Linux.Syscalls
 import ViperVM.Format.Binary.Storable
 import ViperVM.Format.Binary.Ptr
 import ViperVM.Format.String
-import ViperVM.Utils.Types.Generics (Generic)
 import ViperVM.Utils.Flow
 
 -- | struct utsname
@@ -26,7 +27,9 @@ data SystemInfo = SystemInfo
    , systemRelease  :: CStringBuffer 65 -- ^ Release
    , systemVersion  :: CStringBuffer 65 -- ^ Version
    , systemMachine  :: CStringBuffer 65 -- ^ Hardware identifier
-   } deriving (Show,Generic,Storable)
+   } deriving (Show)
+
+$(makeStorable ''SystemInfo)
 
 -- | "uname" syscall
 systemInfo :: MonadInIO m => Flow m '[SystemInfo,ErrorCode]

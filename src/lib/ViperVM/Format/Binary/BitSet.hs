@@ -1,7 +1,10 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE DefaultSignatures #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 -- | A bit set based on Enum to name the bits. Use bitwise operations and
 -- minimal storage in a safer way.
@@ -76,7 +79,9 @@ import ViperVM.Format.Binary.Storable
 --
 -- The elements in the Enum a are flags corresponding to each bit of b starting
 -- from the least-significant bit.
-newtype BitSet b a = BitSet b deriving (Eq,Ord,Storable)
+newtype BitSet b a = BitSet b deriving (Eq,Ord)
+
+$(makeStorable ''BitSet)
 
 instance (Show a, CBitSet a, FiniteBits b) => Show (BitSet b a) where
    show b = "fromList " ++ show (toList b)

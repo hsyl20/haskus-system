@@ -1,9 +1,9 @@
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE TypeFamilies #-}
 
 -- | Linux time
 module ViperVM.Arch.Linux.Time
@@ -28,20 +28,23 @@ import ViperVM.Format.Binary.Storable
 import ViperVM.Arch.Linux.ErrorCode
 import ViperVM.Arch.Linux.Syscalls
 import ViperVM.Utils.Flow
-import ViperVM.Utils.Types.Generics (Generic)
 
 
 -- | Time spec
 data TimeSpec = TimeSpec
    { tsSeconds      :: {-# UNPACK #-} !Int64
    , tsNanoSeconds  :: {-# UNPACK #-} !Int64
-   } deriving (Show,Eq,Ord,Generic,Storable)
+   } deriving (Show,Eq,Ord)
+
+$(makeStorable ''TimeSpec)
 
 -- | Time val
 data TimeVal = TimeVal
    { tvSeconds       :: Word64
    , tvMicroSeconds  :: Word64
-   } deriving (Show,Eq,Ord,Generic,Storable)
+   } deriving (Show,Eq,Ord)
+
+$(makeStorable ''TimeVal)
 
 -- | Timeval difference in microseconds
 timeValDiff :: TimeVal -> TimeVal -> Word64

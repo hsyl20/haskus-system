@@ -2,11 +2,11 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE StandaloneDeriving #-}
-{-# LANGUAGE DeriveAnyClass #-}
-{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 -- | ISO 9660 / ECMA-119
 --
@@ -43,13 +43,12 @@ import ViperVM.Format.Binary.Ptr
 import ViperVM.Format.Binary.Storable
 import ViperVM.Format.String
 import ViperVM.Utils.Types
-import ViperVM.Utils.Types.Generics (Generic)
 
 -- | String with characters: A-Z 0-9 _ * " % & ' ( ) * + , - . / : ; < = > ?
-newtype StringA (n :: Nat) = StringA (CStringBuffer n) deriving (Show,Generic,Storable)
+newtype StringA (n :: Nat) = StringA (CStringBuffer n) deriving (Show,Storable)
 
 -- | String with characters: A-Z 0-9 _
-newtype StringD (n :: Nat) = StringD (CStringBuffer n) deriving (Show,Generic,Storable)
+newtype StringD (n :: Nat) = StringD (CStringBuffer n) deriving (Show,Storable)
 
 -- | Store the number in both endiannesses: Little-Endian then Big-Endian
 newtype BothEndian w = BothEndian w
@@ -64,7 +63,9 @@ data DateTime = DateTime
    , dateSecond                  :: StringD 2 -- ^ Second from 0 to 59
    , dateCentiSeconds            :: StringD 2 -- ^ Hundredths of a second from 0 to 99
    , dateTimeZone                :: Word8     -- ^ Time zone offset from GMT in 15 minute intervals, starting at interval -48 (west) and running up to interval 52 (east). So value 0 indicates interval -48 which equals GMT-12 hours, and value 100 indicates interval 52 which equals GMT+13 hours.
-   } deriving (Show,Generic,Storable)
+   } deriving (Show)
+
+$(makeStorable ''DateTime)
 
 instance (ByteReversable w, Storable w) => Storable (BothEndian w) where
    sizeOf _                = 2 * sizeOfT @w

@@ -1,5 +1,4 @@
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE DataKinds #-}
 
 module ViperVM.Arch.Linux.Internals.Sound
@@ -172,7 +171,6 @@ module ViperVM.Arch.Linux.Internals.Sound
    )
 where
 
-import ViperVM.Utils.Types.Generics (Generic)
 import ViperVM.Format.Binary.Vector (Vector)
 import ViperVM.Format.Binary.Union
 import ViperVM.Format.Binary.Word
@@ -199,7 +197,9 @@ data AesIec958 = AesIec958
    , aesSubcode     :: Vector 147 Word8 -- ^ AES/IEC958 subcode bits
    , aesPadding     :: CChar            -- ^ nothing
    , aesDigSubFrame :: Vector 4 Word8   -- ^ AES/IEC958 subframe bits
-   } deriving (Generic, Show, Storable)
+   } deriving (Show)
+
+$(makeStorable ''AesIec958)
 
 -----------------------------------------------------------------------------
 -- Digit audio interface
@@ -211,7 +211,9 @@ data Cea861AudioInfoFrame = Cea861AudioInfoFrame
    , ceaUnused                 :: Word8 -- ^ not used, all zeros
    , ceaChannelAllocationCode  :: Word8 -- ^ channel allocation code
    , ceaDownmixLevelShift      :: Word8 -- ^ downmix inhibit & level-shit values
-   } deriving (Generic, Show, Storable)
+   } deriving (Show)
+
+$(makeStorable ''Cea861AudioInfoFrame)
 
 -----------------------------------------------------------------------------
 -- Section for driver hardware dependent interface - /dev/snd/hw?
@@ -255,7 +257,9 @@ data HwInfo = HwInfo
    , hwInfoName      :: CStringBuffer 80 -- ^ hwdep name
    , hwInfoInterface :: Int              -- ^ hwdep interface
    , hwInfoReserved  :: Vector 64 Word8  -- ^ reserved for future
-   } deriving (Generic, Show, Storable)
+   } deriving (Show)
+
+$(makeStorable ''HwInfo)
 
 -- | Generic DSP loader
 data HwDspStatus = HwDspStatus
@@ -265,7 +269,9 @@ data HwDspStatus = HwDspStatus
    , hwDspLoadedDsps :: Word             -- ^ R: bit flags indicating the loaded DSPs
    , hwDspChipReady  :: Word             -- ^ R: 1 = initialization finished
    , hwDspReserved   :: Vector 16 Word8  -- ^ reserved for future use
-   } deriving (Generic, Show, Storable)
+   } deriving (Show)
+
+$(makeStorable ''HwDspStatus)
 
 data HwDspImage = HwDspImage
    { hwDspImageIndex      :: Word             -- ^ W: DSP index
@@ -273,7 +279,9 @@ data HwDspImage = HwDspImage
    , hwDspImageBin        :: Ptr ()           -- ^ W: binary image
    , hwDspImageLength     :: CSize            -- ^ W: size of image in bytes
    , hwDspImageDriverData :: Word64           -- ^ W: driver-specific data
-   } deriving (Generic, Show, Storable)
+   } deriving (Show)
+
+$(makeStorable ''HwDspImage)
 
 hwIoctlW :: Storable a => Word8 -> a -> Handle -> IOErr ()
 hwIoctlW = ioctlWrite 0x48
@@ -599,7 +607,9 @@ data PcmInfo = PcmInfo
    , pcmInfoSubDevicesAvailabled :: Word
    , pcmInfoSync                 :: Vector 16 Word8  -- ^ hardware synchronization ID
    , pcmInfoReserved             :: Vector 64 Word8  -- ^ reserved for future...
-   } deriving (Generic, Show, Storable)
+   } deriving (Show)
+
+$(makeStorable ''PcmInfo)
 
 data PcmHwParam
    = PcmHwParamAccess      -- ^ Access type
@@ -658,7 +668,9 @@ data Interval = Interval
    { intervalMin :: Word
    , intervalMax :: Word
    , intervalOptions :: IntervalOptions
-   } deriving (Show,Eq,Generic,Storable)
+   } deriving (Show,Eq)
+
+$(makeStorable ''Interval)
 
 data IntervalOption
    = IntervalOpenMin
@@ -677,9 +689,9 @@ data PcmHwParamsFlag
 
 type PcmHwParamsFlags = BitSet Word PcmHwParamsFlag
 
-data Mask = Mask
+newtype Mask = Mask
    { maskBits :: Vector 8 Word32
-   } deriving (Generic,Storable,Show)
+   } deriving (Show,Storable)
 
 data PcmHwParams = PcmHwParams
    { pcmHwParamsFlags               :: PcmHwParamsFlags
@@ -693,7 +705,9 @@ data PcmHwParams = PcmHwParams
    , pcmHwParamsRateDenominator     :: Word               -- ^ R: rate denominator
    , pcmHwParamsFifoSize            :: Word64             -- ^ R: chip FIFO size in frames
    , pcmHwParamsReserved            :: Vector 64 Word8    -- ^ reserved for future
-   } deriving (Generic, Storable, Show)
+   } deriving (Show)
+
+$(makeStorable ''PcmHwParams)
 
 data PcmTimeStampMode
    = PcmTimeStampNone
@@ -714,14 +728,18 @@ data PcmSwParams = PcmSwParams
    , pcmSwParamsProtoVersion     :: Word            -- ^ protocol version
    , pcmSwParamsTimeStampType    :: Word            -- ^ timestamp type (req. proto >= 2.0.12)
    , pcmSwParamsReserved         :: Vector 56 Word8 -- ^ reserved for future
-   } deriving (Generic, Storable, Show)
+   } deriving (Show)
+
+$(makeStorable ''PcmSwParams)
 
 data PcmChannelInfo = PcmChannelInfo
    { pcmChannelInfoChannel :: Word
    , pcmChannelInfoOffset  :: Int64 -- ^ mmap offset
    , pcmChannelInfoFirst   :: Word  -- ^ offset to first sample in bits
    , pcmChannelInfoStep    :: Word  -- ^ samples distance in bits
-   } deriving (Show,Generic,Storable)
+   } deriving (Show)
+
+$(makeStorable ''PcmChannelInfo)
 
 data PcmAudioTimeStamp
    = PcmAudioTimeStampCompat           -- ^ For backwards compatibility only, maps to wallclock/link time for HDAudio playback and DEFAULT/DMA time for everything else
@@ -748,7 +766,9 @@ data PcmStatus = PcmStatus
    , pcmStatusDriverTimeStamp    :: TimeSpec        -- ^ useful in case reference system tstamp is reported with delay
    , pcmStatusTimeStampAccuracy  :: Word32          -- ^ in ns units, only valid if indicated in audio_tstamp_data
    , pcmStatusReserved           :: Vector 20 Word8 -- ^ must be filled with zero
-   } deriving (Show,Generic,Storable)
+   } deriving (Show)
+
+$(makeStorable ''PcmStatus)
 
 data PcmMmapStatus = PcmMmapStatus
    { pcmMmapStatusState          :: PcmStateField -- ^ RO: state - SNDRV_PCM_STATE_XXXX
@@ -757,12 +777,16 @@ data PcmMmapStatus = PcmMmapStatus
    , pcmMmapStatusTimeStamp      :: TimeSpec -- ^ Timestamp
    , pcmMmapStatusSuspendedState :: PcmStateField -- ^ RO: suspended stream state
    , pcmMmapStatusAudioTimeStamp :: TimeSpec -- ^ from sample counter or wall clock
-   } deriving (Show,Generic,Storable)
+   } deriving (Show)
+
+$(makeStorable ''PcmMmapStatus)
 
 data PcmMmapControl = PcmMmapControl
    { pcmMmapControlApplPtr  :: Word64  -- ^ RW: appl ptr (0...boundary-1)
    , pcmMmapControlAvailMin :: Word64  -- ^ RW: min available frames for wakeup
-   } deriving (Show,Generic,Storable)
+   } deriving (Show)
+
+$(makeStorable ''PcmMmapControl)
 
 data PcmSyncFlag
    = PcmSyncFlagHwSync        -- ^ execute hwsync 
@@ -777,19 +801,25 @@ data PcmSyncPtr = PcmSyncPtr
    , pcmSyncPtrStatus  :: PcmMmapStatus
    , pcmSyncPtrControl :: PcmMmapControl
    , pcmSyncPtrPadding :: Vector 48 Word8
-   } deriving (Show, Generic, Storable)
+   } deriving (Show)
+
+$(makeStorable ''PcmSyncPtr)
 
 data XferI = XferI
    { xferiResult :: Int64
    , xferiBuffer :: Ptr ()
    , xferiFrames :: Word64
-   } deriving (Show, Generic, Storable)
+   } deriving (Show)
+
+$(makeStorable ''XferI)
 
 data XferN = XferN
    { xfernResult  :: Int64
    , xfernBuffers :: Ptr (Ptr ())
    , xfernFrames  :: Word64
-   } deriving (Show, Generic, Storable)
+   } deriving (Show)
+
+$(makeStorable ''XferN)
 
 data PcmTimeStampType
    = PcmTimeStampGetTimeOfDay  -- ^ gettimeofday equivalent 
@@ -989,7 +1019,9 @@ data MidiInfo = MidiInfo
    , midiInfoSubDeviceCount :: Word
    , midiInfoSubDeviceAvail :: Word
    , midiInfoReserved       :: Vector 64 Word8  -- ^ reserved for future use
-   } deriving (Show, Generic, Storable)
+   } deriving (Show)
+
+$(makeStorable ''MidiInfo)
 
 data MidiParams = MidiParams
    { midiParamsStream          :: Int
@@ -997,7 +1029,9 @@ data MidiParams = MidiParams
    , midiParamsAvailMin        :: CSize           -- ^ minimum avail bytes for wakeup
    , midiParamsNoActiveSensing :: Word            -- ^ do not send active sensing byte in close()
    , midiParamsReserved        :: Vector 16 Word8 -- ^ reserved for future use
-   } deriving (Show, Generic, Storable)
+   } deriving (Show)
+
+$(makeStorable ''MidiParams)
 
 data MidiStatus = MidiStatus
    { midiStatusStream    :: Int
@@ -1005,7 +1039,9 @@ data MidiStatus = MidiStatus
    , midiStatusAvail     :: CSize           -- ^ available bytes
    , midiStatusXRuns     :: CSize           -- ^ count of overruns since last status (in bytes)
    , midiStatusReserved  :: Vector 16 Word8 -- ^ reserved for future use
-   } deriving (Show, Generic, Storable)
+   } deriving (Show)
+
+$(makeStorable ''MidiStatus)
 
 midiIoctlW :: Storable a => Word8 -> a -> Handle -> IOErr ()
 midiIoctlW = ioctlWrite 0x57
@@ -1097,7 +1133,9 @@ data TimerId = TimerId
    , timerIdCard           :: Int
    , timerIdDevice         :: Int
    , timerIdSubDevice      :: Int
-   } deriving (Show,Generic,Storable)
+   } deriving (Show)
+
+$(makeStorable ''TimerId)
 
 data TimerGInfo = TimerGInfo
    { timerGInfoTimerID       :: TimerId          -- ^ requested timer ID
@@ -1111,14 +1149,18 @@ data TimerGInfo = TimerGInfo
    , timerGInfoResolutionMax :: Word64           -- ^ maximal period resolution in ns
    , timerGInfoClients       :: Word             -- ^ active timer clients
    , timerGInfoReserved2     :: Vector 32 Word8
-   } deriving (Show,Generic,Storable)
+   } deriving (Show)
+
+$(makeStorable ''TimerGInfo)
 
 data TimerGParams = TimerGParams
    { timerGParamsTimerId          :: TimerId        -- ^ requested timer ID
    , timerGParamsPeriodNumerator  :: Word64         -- ^ requested precise period duration (in seconds) - numerator
    , timerGParamsPeriodDenomintor :: Word64         -- ^ requested precise period duration (in seconds) - denominator
    , timerGParamsReserved         :: Vector 32 Word8
-   } deriving (Show,Generic,Storable)
+   } deriving (Show)
+
+$(makeStorable ''TimerGParams)
 
 data TimerGStatus = TimerGStatus
    { timerGStatusTimerId               :: TimerId         -- ^ requested timer ID
@@ -1126,12 +1168,16 @@ data TimerGStatus = TimerGStatus
    , timerGStatusResolutionNumerator   :: Word64          -- ^ precise current period resolution (in seconds) - numerator
    , timerGStatusResolutionDenominator :: Word64          -- ^ precise current period resolution (in seconds) - denominator
    , timerGStatusReserved              :: Vector 32 Word8
-   } deriving (Show,Generic,Storable)
+   } deriving (Show)
+
+$(makeStorable ''TimerGStatus)
 
 data TimerSelect = TimerSelect
    { timerSelectTimerId  :: TimerId         -- ^ bind to timer ID
    , timerSelectReserved :: Vector 32 Word8 -- ^ reserved
-   } deriving (Show,Generic,Storable)
+   } deriving (Show)
+
+$(makeStorable ''TimerSelect)
 
 data TimerInfo = TimerInfo
    { timerInfoFlags      :: TimerFlags       -- ^ timer flags
@@ -1141,7 +1187,9 @@ data TimerInfo = TimerInfo
    , timerInfoReserved   :: Word64           -- ^ reserved for future use
    , timerInfoResolution :: Word64           -- ^ average period resolution in ns
    , timerInfoReserved2  :: Vector 64 Word8
-   } deriving (Show,Generic,Storable)
+   } deriving (Show)
+
+$(makeStorable ''TimerInfo)
 
 data TimerParamsFlag
    = TimerParamFlagAuto       -- ^ auto start, otherwise one-shot 
@@ -1158,7 +1206,9 @@ data TimerParams = TimerParams
    , timerParamsReserved  :: Word             -- ^ reserved, was: failure locations
    , timerParamsFilter    :: Word             -- ^ event filter (bitmask of SNDRV_TIMER_EVENT_*)
    , timerParamsReserved2 :: Vector 60 Word8  -- ^ reserved
-   } deriving (Show,Generic,Storable)
+   } deriving (Show)
+
+$(makeStorable ''TimerParams)
 
 data TimerStatus = TimerStatus
    { timerStatusTimeStamp  :: TimeSpec        -- ^ Timestamp - last update
@@ -1167,7 +1217,9 @@ data TimerStatus = TimerStatus
    , timerStatusOverrun    :: Word            -- ^ count of read queue overruns
    , timerStatusQueue      :: Word            -- ^ used queue size
    , timerStatusReserved   :: Vector 64 Word8 -- ^ reserved
-   } deriving (Show,Generic,Storable)
+   } deriving (Show)
+
+$(makeStorable ''TimerStatus)
 
 timerIoctl :: Word8 -> Handle -> IOErr ()
 timerIoctl n = ioctlSignal 0x54 n (0 :: Int)
@@ -1226,7 +1278,9 @@ ioctlTimerPause = timerIoctl 0xa3
 data TimerRead = TimerRead
    { timerReadResolution :: Word
    , timerReadTicks      :: Word
-   } deriving (Show,Generic,Storable)
+   } deriving (Show)
+
+$(makeStorable ''TimerRead)
 
 data TimerEvent
    = TimerEventResolution        -- ^ val = resolution in ns 
@@ -1286,7 +1340,9 @@ data TimerTRead = TimerTRead
    { timerTReadEvent     :: Int
    , timerTReadTimeStamp :: TimeSpec
    , timerTReadValue     :: Word
-   } deriving (Show,Generic,Storable)
+   } deriving (Show)
+
+$(makeStorable ''TimerTRead)
 
 -----------------------------------------------------------------------------
 -- Driver control interface - /dev/snd/control*
@@ -1305,7 +1361,9 @@ data ControlCardInfo = ControlCardInfo
    , controlCardInfoReserved   :: Vector 16 Word8   -- ^ reserved for future (was ID of mixer)
    , controlCardInfoMixerName  :: CStringBuffer 80  -- ^ visual mixer identification
    , controlCardInfoComponents :: CStringBuffer 128 -- ^ card components / fine identification, delimited with one space (AC97 etc..)
-   } deriving (Show,Generic,Storable)
+   } deriving (Show)
+
+$(makeStorable ''ControlCardInfo)
 
 data ControlElementType
    = ControlElemNone
@@ -1393,7 +1451,9 @@ data ControlElementId = ControlElementId
    , controlElemIdSubDevice :: Word             -- ^ subdevice (substream) number
    , controlElemIdName      :: CStringBuffer 44 -- ^ ASCII name of item
    , controlElemIdIndex     :: Word             -- ^ index of item
-   } deriving (Show,Generic,Storable)
+   } deriving (Show)
+
+$(makeStorable ''ControlElementId)
 
 data ControlElementList = ControlElementList
    { controlElemListOffset   :: Word            -- ^ W: first element ID to get
@@ -1402,19 +1462,25 @@ data ControlElementList = ControlElementList
    , controlElemListCount    :: Word            -- ^ R: count of all elements
    , controlElemListPids     :: Ptr ()          -- ^ R: IDs
    , controlElemListReserved :: Vector 50 Word8
-   } deriving (Show,Generic,Storable)
+   } deriving (Show)
+
+$(makeStorable ''ControlElementList)
 
 data IntegerValue = IntegerValue
    { integerValueMin  :: Word32 -- ^ R: minimum value
    , integerValueMax  :: Word32 -- ^ R: maximum value
    , integerValueStep :: Word32 -- ^ R: step (0 variable)
-   } deriving (Show,Generic,Storable)
+   } deriving (Show)
+
+$(makeStorable ''IntegerValue)
 
 data Integer64Value = Integer64Value
    { integer64ValueMin  :: Word64 -- ^ R: minimum value
    , integer64ValueMax  :: Word64 -- ^ R: maximum value
    , integer64ValueStep :: Word64 -- ^ R: step (0 variable)
-   } deriving (Show,Generic,Storable)
+   } deriving (Show)
+
+$(makeStorable ''Integer64Value)
 
 data EnumeratedValue = EnumeratedValue
    { enumeratedCount       :: Word             -- ^ R: number of items
@@ -1422,7 +1488,9 @@ data EnumeratedValue = EnumeratedValue
    , enumeratedName        :: CStringBuffer 64 -- ^ R: value name
    , enumeratedNamesPtr    :: Word64           -- ^ W: names list (ELEM_ADD only)
    , enumeratedNamesLength :: Word
-   } deriving (Show,Generic,Storable)
+   } deriving (Show)
+
+$(makeStorable ''EnumeratedValue)
 
 data ControlElementInfo = ControlElementInfo
    { controlElemInfoId         :: ControlElementId
@@ -1432,7 +1500,9 @@ data ControlElementInfo = ControlElementInfo
    , controlElemInfoOwner      :: ProcessID
    , controlElemInfoValue      :: Union '[IntegerValue,Integer64Value,EnumeratedValue,Vector 128 Word8]
    , controlElemInfoDimensions :: Vector 4 Word16
-   } deriving (Show,Generic,Storable)
+   } deriving (Show)
+
+$(makeStorable ''ControlElementInfo)
 
 data ControlElementValue = ControlElementValue
    { controlElemValueId        :: ControlElementId                    -- ^ W: element ID
@@ -1440,14 +1510,18 @@ data ControlElementValue = ControlElementValue
    , controlElemValueValue     :: Union '[Vector 512 Word8,AesIec958]
    , controlElemValueTimeStamp :: TimeSpec
    , controlElemValueReserved  :: Vector 112 Word8
-   } deriving (Show,Generic,Storable)
+   } deriving (Show)
+
+$(makeStorable ''ControlElementValue)
 
 data ControlTLV = ControlTLV
    { controlTlvNumId  :: Word          -- ^ control element numeric identification
    , controlTlvLength :: Word          -- ^ in bytes aligned to 4
    , controlTlvTlv    :: Vector 0 Word -- ^ first TLV
    -- FIXME: the array is allocated "after" the struct...
-   } deriving (Show,Generic,Storable)
+   } deriving (Show)
+
+$(makeStorable ''ControlTLV)
 
 controlIoctlW :: Storable a => Word8 -> a -> Handle -> IOErr ()
 controlIoctlW = ioctlWrite 0x55
@@ -1569,4 +1643,6 @@ data ControlEvent = ControlEvent
    { controlEventType   :: Int
    , controlEventMask   :: Word
    , controlEventElemId :: ControlElementId
-   } deriving (Show,Generic,Storable)
+   } deriving (Show)
+
+$(makeStorable ''ControlEvent)

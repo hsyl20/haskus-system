@@ -1,5 +1,4 @@
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE BangPatterns #-}
@@ -84,7 +83,6 @@ import ViperVM.Format.Binary.Word
 import ViperVM.Format.Binary.Storable
 import ViperVM.Format.Binary.Ptr
 import ViperVM.Utils.Flow
-import ViperVM.Utils.Types.Generics (Generic)
 
 -- =============================================================
 --    From linux/include/uapi/linux/uio.h
@@ -94,7 +92,9 @@ import ViperVM.Utils.Types.Generics (Generic)
 data IOVec = IOVec
    { iovecPtr  :: !(Ptr ())
    , iovecSize :: !Word64
-   } deriving (Generic,Storable)
+   }
+
+$(makeStorable ''IOVec)
 
 -- | Maximum number of IOVec for writev/readv
 -- Also called UIO_MAXIOV or IOV_MAX
@@ -128,7 +128,9 @@ data FileCloneRange = FileCloneRange
    , fcrSrcLength  :: Word64
    , fcrDestOffset :: Word64
    }
-   deriving (Show,Generic,Storable)
+   deriving (Show)
+
+$(makeStorable ''FileCloneRange)
 
 -- | struct fstrim_range
 data TrimRange = TrimRange
@@ -136,7 +138,9 @@ data TrimRange = TrimRange
    , trLength    :: Word64
    , trMinLength :: Word64
    }
-   deriving (Show,Generic,Storable)
+   deriving (Show)
+
+$(makeStorable ''TrimRange)
 
 -- | extent-same (dedupe) ioctls; these MUST match the btrfs ioctl definitions
 data DedupeRangeFlag
@@ -157,7 +161,9 @@ data FileDedupeRangeInfo = FileDedupeRangeInfo
                                 -- == FILE_DEDUPE_RANGE_DIFFERS if data differs
    , fdriReserved     :: Word32 -- ^ must be zero 
    }
-   deriving (Show,Eq,Generic,Storable)
+   deriving (Show,Eq)
+
+$(makeStorable ''FileDedupeRangeInfo)
 
 -- | from struct btrfs_ioctl_file_extent_same_args
 -- struct file_dedupe_range
@@ -168,7 +174,9 @@ data FileDedupeRangeHeader = FileDedupeRangeHeader
    , fdrReserved1 :: Word16 -- ^ must be zero
    , fdrReserved2 :: Word32 -- ^ must be zero
    }
-   deriving (Show,Eq,Generic,Storable)
+   deriving (Show,Eq)
+
+$(makeStorable ''FileDedupeRangeHeader)
 
 
 -----------------------------------------------------------------------------
@@ -181,7 +189,9 @@ data FilesStatStruct = FilesStatStruct
    , fssNrFreeFiles :: CULong -- ^ Read-only
    , fssMaxFiles    :: CULong -- ^ Tunable
    }
-   deriving (Show,Eq,Generic,Storable)
+   deriving (Show,Eq)
+
+$(makeStorable ''FilesStatStruct)
 
 -- | struct inodes_stat_t
 data InodesStat = InodesStat
@@ -189,7 +199,9 @@ data InodesStat = InodesStat
    , isNrUnused :: CLong
    , isDummy    :: Vector 5 CLong -- padding for sysctl ABI compatibility
    }
-   deriving (Show,Generic,Storable)
+   deriving (Show)
+
+$(makeStorable ''InodesStat)
 
 -- | These are the fs-independent mount-flags: up to 32 flags are supported
 data MountFlag
@@ -246,7 +258,9 @@ data FsxAttr = FsxAttr
    , fsxProjectID :: Word32              -- ^ project identifier (get/set)
    , fsxPadding   :: Vector 12 Word8
    }
-   deriving (Show,Generic,Storable)
+   deriving (Show)
+
+$(makeStorable ''FsxAttr)
 
 data XFlag
    = XFlagRealTime         -- ^ data in realtime volume 
@@ -412,7 +426,9 @@ ioctlTraceTearDown = ioctlSignal 0x12 118 (0 :: Int)
 data Range = Range
    { rangeStart  :: Word64
    , rangeLength :: Word64
-   } deriving (Generic,Storable)
+   }
+
+$(makeStorable ''Range)
 
 -- | BLKDISCARD
 ioctlDiscard :: Range -> Handle -> IOErr ()
@@ -540,7 +556,9 @@ data FSCryptPolicy = FSCryptPolicy
    , cryptFileNamesEncryptionMode :: Word8
    , cryptFlags                   :: Word8
    , cryptMasterKeyDesc           :: Vector 8 Word8
-   } deriving (Show,Generic,Storable)
+   } deriving (Show)
+
+$(makeStorable ''FSCryptPolicy)
 
 -- | FS_IOC_SET_ENCRYPTION_POLICY
 ioctlSetEncryptionPolicy :: FSCryptPolicy -> Handle -> IOErr ()

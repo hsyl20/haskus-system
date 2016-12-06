@@ -10,7 +10,6 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE AllowAmbiguousTypes #-}
 
-
 -- | Vector with size in the type
 module ViperVM.Format.Binary.Vector
    ( Vector (..)
@@ -41,7 +40,7 @@ import ViperVM.Format.Binary.Buffer
 -- | Vector with type-checked size
 data Vector (n :: Nat) a = Vector Buffer
 
-instance (Storable a, Show a, KnownNat n) => Show (Vector n a) where
+instance (IsStorable a, Show a, KnownNat n) => Show (Vector n a) where
    show v = "fromList " ++ show (toList v)
 
 -- | Return the buffer backing the vector
@@ -57,26 +56,15 @@ type family ElemOffset a i n where
 
 instance forall a n.
    ( KnownNat (SizeOf a * n)
-   ) => StaticStorable (Vector n a) where
+   , IsStorable a
+   ) => Storable (Vector n a) where
 
    type SizeOf (Vector n a)    = SizeOf a * n
    type Alignment (Vector n a) = Alignment a
 
-   staticPeekIO ptr =
-      Vector <$> bufferPackPtr (natValue @(SizeOf a * n)) (castPtr ptr)
-
-   staticPokeIO ptr (Vector b) = bufferPoke ptr b
-
-instance forall a n.
-   ( KnownNat n
-   , Storable a
-   ) => Storable (Vector n a) where
-   sizeOf _    = natValue @n * sizeOfT @a
-   alignment _ = alignmentT @a
-   peekIO ptr  = 
-      Vector <$> bufferPackPtr (sizeOfT' @(Vector n a)) (castPtr ptr)
-
+   peekIO ptr = Vector <$> bufferPackPtr (natValue @(SizeOf a * n)) (castPtr ptr)
    pokeIO ptr (Vector b) = bufferPoke ptr b
+
 
 -- | Yield the first n elements
 take :: forall n m a.
@@ -95,7 +83,7 @@ drop (Vector b) = Vector (bufferDrop (natValue @(SizeOf a * n)) b)
 -- | /O(1)/ Index safely into the vector using a type level index.
 index :: forall i a n.
    ( KnownNat (ElemOffset a i n)
-   , Storable a
+   , IsStorable a
    ) => Vector n a -> a
 {-# INLINE index #-}
 index (Vector b) = bufferPeekStorableAt b (natValue @(ElemOffset a i n))
@@ -103,7 +91,7 @@ index (Vector b) = bufferPeekStorableAt b (natValue @(ElemOffset a i n))
 -- | Convert a list into a vector if the number of elements matches
 fromList :: forall a (n :: Nat) .
    ( KnownNat n
-   , Storable a
+   , IsStorable a
    ) => [a] -> Maybe (Vector n a)
 {-# INLINE fromList #-}
 fromList v
@@ -117,7 +105,7 @@ fromList v
 -- | Take at most n element from the list, then use z
 fromFilledList :: forall a (n :: Nat) .
    ( KnownNat n
-   , Storable a
+   , IsStorable a
    ) => a -> [a] -> Vector n a
 {-# INLINE fromFilledList #-}
 fromFilledList z v = Vector $ bufferPackStorableList v'
@@ -127,7 +115,7 @@ fromFilledList z v = Vector $ bufferPackStorableList v'
 -- | Take at most (n-1) element from the list, then use z
 fromFilledListZ :: forall a (n :: Nat) .
    ( KnownNat n
-   , Storable a
+   , IsStorable a
    ) => a -> [a] -> Vector n a
 {-# INLINE fromFilledListZ #-}
 fromFilledListZ z v = fromFilledList z v'
@@ -137,7 +125,7 @@ fromFilledListZ z v = fromFilledList z v'
 -- | Convert a vector into a list
 toList :: forall a (n :: Nat) .
    ( KnownNat n
-   , Storable a
+   , IsStorable a
    ) => Vector n a -> [a]
 {-# INLINE toList #-}
 toList (Vector b)
@@ -150,7 +138,7 @@ toList (Vector b)
 -- | Create a vector by replicating a value
 replicate :: forall a (n :: Nat) .
    ( KnownNat n
-   , Storable a
+   , IsStorable a
    ) => a -> Vector n a
 {-# INLINE replicate #-}
 replicate v = fromFilledList v []
@@ -162,9 +150,8 @@ instance forall n v a r.
    ( v ~ Vector n a
    , r ~ IO (Ptr a)
    , KnownNat n
-   , KnownNat (SizeOf a)
-   , StaticStorable a
-   , Storable a
+   , KnownNat (SizeOf a * n)
+   , IsStorable a
    ) => Apply StoreVector (v, IO (Ptr a)) r where
       apply _ (v, getP) = do
          p <- getP
@@ -182,8 +169,7 @@ type family WholeSize fs :: Nat where
 concat :: forall l (n :: Nat) a .
    ( n ~ WholeSize l
    , KnownNat n
-   , Storable a
-   , StaticStorable a
+   , IsStorable a
    , HFoldr StoreVector (IO (Ptr a)) l (IO (Ptr a))
    )
    => HList l -> Vector n a

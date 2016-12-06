@@ -1,5 +1,3 @@
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE FlexibleContexts #-}
@@ -32,7 +30,6 @@ import ViperVM.Arch.Linux.Handle
 import ViperVM.Arch.Linux.Syscalls
 import ViperVM.Arch.Linux.FileSystem
 import ViperVM.Utils.Flow
-import ViperVM.Utils.Types.Generics (Generic)
 
 sysCreateDirectory :: MonadInIO m => Maybe Handle -> FilePath -> FilePermissions -> Bool -> Flow m '[(),ErrorCode]
 sysCreateDirectory fd path perm sticky = do
@@ -59,7 +56,9 @@ data DirectoryEntryHeader = DirectoryEntryHeader
    , dirOffset    :: Int64    -- ^ Offset of the next entry
    , dirLength    :: Word16   -- ^ Length of the entry
    , dirFileTyp   :: Word8    -- ^ Type of file
-   } deriving (Generic,Storable)
+   } deriving (Show)
+
+$(makeStorable ''DirectoryEntryHeader)
 
 data DirectoryEntry = DirectoryEntry
    { entryInode :: Word64

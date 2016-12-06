@@ -1,6 +1,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 -- | A memory buffer with a fixed address
 --
@@ -168,12 +169,12 @@ bufferSize (Buffer bs) =
       s = BS.length bs
 
 -- | Peek a storable
-bufferPeekStorable :: forall a. Storable a => Buffer -> a
+bufferPeekStorable :: forall a. IsStorable a => Buffer -> a
 bufferPeekStorable = snd . bufferPopStorable
 
 -- | Peek a storable at the given offset
 bufferPeekStorableAt :: forall a.
-   ( Storable a
+   ( IsStorable a
    )
    => Buffer -> Word -> a
 bufferPeekStorableAt b n
@@ -183,7 +184,7 @@ bufferPeekStorableAt b n
    
 
 -- | Pop a Storable and return the new buffer
-bufferPopStorable :: forall a. Storable a => Buffer -> (Buffer,a)
+bufferPopStorable :: forall a. IsStorable a => Buffer -> (Buffer,a)
 bufferPopStorable buf
    | bufferSize buf < sza = error "bufferRead: out of bounds"
    | otherwise            = unsafePerformIO $ do
@@ -276,14 +277,14 @@ bufferPackByteList :: [Word8] -> Buffer
 bufferPackByteList = Buffer . BS.pack
 
 -- | Pack a Storable
-bufferPackStorable :: forall a. Storable a => a -> Buffer
+bufferPackStorable :: forall a. IsStorable a => a -> Buffer
 bufferPackStorable x = Buffer $ unsafePerformIO $ do
    p <- malloc
    poke p x
    BS.unsafePackMallocCStringLen (castPtr p, sizeOfT' @a)
 
 -- | Pack a list of Storable
-bufferPackStorableList :: forall a. Storable a => [a] -> Buffer
+bufferPackStorableList :: forall a. IsStorable a => [a] -> Buffer
 bufferPackStorableList xs = Buffer $ unsafePerformIO $ do
    let lxs = length xs
    p <- mallocArray (fromIntegral lxs)

@@ -113,19 +113,19 @@ instance forall fs.
       ( KnownNat (Max (MapSizeOf fs))
       , KnownNat (Max (MapAlignment fs))
       )
-      => StaticStorable (Union fs)
+      => Storable (Union fs)
    where
       type SizeOf (Union fs)    = Max (MapSizeOf fs)
       type Alignment (Union fs) = Max (MapAlignment fs)
 
-      staticPeekIO ptr = do
+      peekIO ptr = do
          let sz = natValue @(SizeOf (Union fs))
          fp <- mallocForeignPtrBytes sz
          withForeignPtr fp $ \p -> 
             memCopy p (castPtr ptr) (fromIntegral sz)
          return (Union fp)
 
-      staticPokeIO ptr (Union fp) = do
+      pokeIO ptr (Union fp) = do
          withForeignPtr fp $ \p ->
             memCopy (castPtr ptr) p (natValue @(SizeOf (Union fs)))
 

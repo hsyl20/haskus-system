@@ -1,5 +1,3 @@
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeApplications #-}
@@ -15,7 +13,6 @@ module ViperVM.Arch.Linux.FileSystem.Notification
 where
 
 import ViperVM.Utils.Maybe (mapMaybe)
-import ViperVM.Utils.Types.Generics (Generic)
 import ViperVM.Utils.Flow
 import ViperVM.Format.Binary.Word
 import ViperVM.Format.Binary.Storable
@@ -30,7 +27,9 @@ data PollStruct = PollStruct
    { pollFD             :: Int32
    , pollEvents         :: Word16
    , pollReturnedEvents :: Word16
-   } deriving (Generic,Storable)
+   } deriving (Show)
+
+$(makeStorable ''PollStruct)
 
 -- | Polling event
 data PollEvent

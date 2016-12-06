@@ -1,7 +1,3 @@
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE DeriveAnyClass #-}
-{-# LANGUAGE DataKinds #-}
-
 -- | Generic buffer management
 --
 -- Generic buffers are unaccelerated buffers that can be used with all devices

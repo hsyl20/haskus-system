@@ -174,42 +174,32 @@ instance ByteReversable Word64 where
 
 
 -- | Force a data to be read/stored as big-endian
-newtype AsBigEndian a    = AsBigEndian a    deriving (Eq,Ord,Enum,Num,Integral,Real)
+newtype AsBigEndian a
+   = AsBigEndian a
+   deriving (Eq,Ord,Enum,Num,Integral,Real)
+
+-- | Force a data to be read/stored as little-endian
+newtype AsLittleEndian a
+   = AsLittleEndian a
+   deriving (Eq,Ord,Enum,Num,Integral,Real)
 
 instance Show a => Show (AsBigEndian a) where
    show (AsBigEndian a) = show a
 
--- | Force a data to be read/stored as little-endian
-newtype AsLittleEndian a = AsLittleEndian a deriving (Eq,Ord,Enum,Num,Integral,Real)
-
 instance Show a => Show (AsLittleEndian a) where
    show (AsLittleEndian a) = show a
 
-instance (ByteReversable a, StaticStorable a) => StaticStorable (AsBigEndian a) where
+instance (ByteReversable a, Storable a) => Storable (AsBigEndian a) where
    type SizeOf (AsBigEndian a)    = SizeOf a
    type Alignment (AsBigEndian a) = Alignment a
-
-   staticPeekIO ptr                 = AsBigEndian . bigEndianToHost <$> staticPeek (castPtr ptr)
-   staticPokeIO ptr (AsBigEndian v) = staticPoke (castPtr ptr) (hostToBigEndian v)
-
-
-instance (ByteReversable a, Storable a) => Storable (AsBigEndian a) where
-   sizeOf _    = sizeOfT    @a
-   alignment _ = alignmentT @a
 
    peekIO ptr                 = AsBigEndian . bigEndianToHost <$> peek (castPtr ptr)
    pokeIO ptr (AsBigEndian v) = poke (castPtr ptr) (hostToBigEndian v)
 
-instance (ByteReversable a, StaticStorable a) => StaticStorable (AsLittleEndian a) where
+
+instance (ByteReversable a, Storable a) => Storable (AsLittleEndian a) where
    type SizeOf (AsLittleEndian a)    = SizeOf a
    type Alignment (AsLittleEndian a) = Alignment a
 
-   staticPeekIO ptr                    = AsLittleEndian . bigEndianToHost <$> staticPeekIO (castPtr ptr)
-   staticPokeIO ptr (AsLittleEndian v) = staticPokeIO (castPtr ptr) (hostToLittleEndian v)
-
-instance (ByteReversable a, Storable a) => Storable (AsLittleEndian a) where
-   sizeOf _    = sizeOfT    @a
-   alignment _ = alignmentT @a
-
-   peekIO ptr                    = AsLittleEndian . bigEndianToHost <$> peek (castPtr ptr)
-   pokeIO ptr (AsLittleEndian v) = poke (castPtr ptr) (hostToLittleEndian v)
+   peekIO ptr                    = AsLittleEndian . bigEndianToHost <$> peekIO (castPtr ptr)
+   pokeIO ptr (AsLittleEndian v) = pokeIO (castPtr ptr) (hostToLittleEndian v)

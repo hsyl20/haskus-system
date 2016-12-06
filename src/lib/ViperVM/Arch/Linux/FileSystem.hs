@@ -1,5 +1,4 @@
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE LambdaCase #-}
@@ -69,7 +68,6 @@ import ViperVM.Format.String
 import qualified ViperVM.Format.Binary.BitSet as BitSet
 import ViperVM.Utils.Flow
 import ViperVM.Utils.Maybe
-import ViperVM.Utils.Types.Generics (Generic)
 
 import ViperVM.Arch.Linux.ErrorCode
 import ViperVM.Arch.Linux.Handle
@@ -318,7 +316,9 @@ data StatStruct = StatStruct
    , statLastAccess'       :: TimeSpec
    , statLastModif'        :: TimeSpec
    , statLastStatusChange' :: TimeSpec
-   } deriving (Generic,Storable)
+   }
+
+$(makeStorable ''StatStruct)
 
 data Stat = Stat
    { statDevice            :: DeviceID

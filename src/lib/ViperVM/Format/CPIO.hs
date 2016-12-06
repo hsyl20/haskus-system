@@ -1,7 +1,9 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE DeriveAnyClass #-}
-{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 -- | Module implementing the CPIO format (used by Linux initramfs)
 --
@@ -27,7 +29,6 @@ import ViperVM.Format.Binary.Buffer
 import ViperVM.Format.Binary.Put
 import ViperVM.Format.Binary.Get
 import ViperVM.Format.Binary.Storable
-import ViperVM.Utils.Types.Generics (Generic)
 import ViperVM.Utils.Flow (forM_,when)
 import ViperVM.Format.Text (Text)
 import qualified ViperVM.Format.Text as Text
@@ -127,7 +128,9 @@ data FileDesc = FileDesc
    , fileDevMinor    :: Word64   -- ^ Disk device minor number
    , fileRDevMajor   :: Word64   -- ^ Special file major number
    , fileRDevMinor   :: Word64   -- ^ Special file minor number
-   } deriving (Show,Generic,Storable)
+   } deriving (Show)
+
+$(makeStorable ''FileDesc)
 
 -- | Put a number as a 8-char string padding left with zeros
 putNumber :: Word64 -> Put

@@ -122,12 +122,12 @@ recordFieldOffset _ = natValue @(FieldOffset name fs 0)
 recordField :: forall (name :: Symbol) a fs.
    ( KnownNat (FieldOffset name fs 0)
    , a ~ FieldType name fs
-   , StaticStorable a
+   , IsStorable a
    ) => Record fs -> a
 recordField r@(Record fp) = unsafePerformIO $
    withForeignPtr fp $ \ptr ->do
       let ptr' = ptr `indexPtr` recordFieldOffset @name r
-      staticPeek (castPtr ptr')
+      peek (castPtr ptr')
 
 data Path (fs :: [Symbol])
 
@@ -143,32 +143,32 @@ recordFieldPath :: forall path a fs o.
    ( o ~ FieldPathOffset fs path 0
    , a ~ FieldPathType fs path
    , KnownNat o
-   , StaticStorable a
+   , IsStorable a
    ) => Path path -> Record fs -> a
 recordFieldPath _ (Record fp) = unsafePerformIO $
    withForeignPtr fp $ \ptr -> do
       let
          ptr' = ptr `indexPtr` natValue @o
-      staticPeek (castPtr ptr')
+      peek (castPtr ptr')
 
 
 instance forall fs s.
       ( s ~ FullRecordSize fs
       , KnownNat s
       )
-      => StaticStorable (Record fs)
+      => Storable (Record fs)
    where
       type SizeOf (Record fs)    = FullRecordSize fs
       type Alignment (Record fs) = RecordAlignment fs 1
 
-      staticPeekIO ptr = do
+      peekIO ptr = do
          let sz = recordSize (undefined :: Record fs)
          fp <- mallocForeignPtrBytes sz
          withForeignPtr fp $ \p ->
             memCopy p ptr (fromIntegral sz)
          return (Record fp)
 
-      staticPokeIO ptr (Record fp) = do
+      pokeIO ptr (Record fp) = do
          let sz = recordSize (undefined :: Record fs)
          withForeignPtr fp $ \p ->
             memCopy ptr p (fromIntegral sz)
@@ -182,7 +182,7 @@ instance forall fs typ name rec b l2 i r.
    , i ~ (rec, HList l2)                    -- input type
    , typ ~ FieldType name fs
    , KnownNat (FieldOffset name fs 0)
-   , StaticStorable typ
+   , IsStorable typ
    , KnownSymbol name
    , r ~ (rec, HList ((String,typ) ': l2))  -- result type
    ) => Apply Extract (b, i) r where

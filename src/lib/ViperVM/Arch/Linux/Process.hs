@@ -1,6 +1,9 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 -- | Process management
 module ViperVM.Arch.Linux.Process
@@ -33,16 +36,24 @@ import ViperVM.Arch.Linux.ErrorCode
 import ViperVM.Utils.Flow
 
 -- | Process ID
-newtype ProcessID = ProcessID Word32 deriving (Show,Eq,Ord,Storable)
+newtype ProcessID = ProcessID Word32 deriving (Show,Eq,Ord)
+
+$(makeStorable ''ProcessID)
 
 -- | Thread ID
-newtype ThreadID = ThreadID Word32 deriving (Show,Eq,Ord,Storable)
+newtype ThreadID = ThreadID Word32 deriving (Show,Eq,Ord)
+
+$(makeStorable ''ThreadID)
 
 -- | User ID
-newtype UserID = UserID Word32 deriving (Show,Eq,Ord,Storable)
+newtype UserID = UserID Word32 deriving (Show,Eq,Ord)
+
+$(makeStorable ''UserID)
 
 -- | Group ID
-newtype GroupID = GroupID Word32 deriving (Show,Eq,Ord,Storable)
+newtype GroupID = GroupID Word32 deriving (Show,Eq,Ord)
+
+$(makeStorable ''GroupID)
 
 -- | Exit the current process with the given return value
 -- This syscall does not return.

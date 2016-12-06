@@ -9,8 +9,8 @@ module ViperVM.Arch.Linux.Internals.Tables
 where
 
 import ViperVM.Format.Binary.Word
-import ViperVM.Format.Binary.Storable
-import Data.List (sort)
+import ViperVM.Utils.Memory (wordBytes)
+import ViperVM.Utils.List (sort)
 
 -- | Maximal value in the error table
 errorTableMax :: Word

@@ -28,26 +28,15 @@ import Data.Data
 newtype EnumField b a = EnumField a deriving (Show,Eq)
 
 instance
-      ( Storable b
-      , Integral b
+      ( Integral b
+      , Storable b
       , CEnum a
       ) => Storable (EnumField b a)
    where
-      sizeOf _               = sizeOfT    @b
-      alignment _            = alignmentT @b
-      peekIO p               = (EnumField . toCEnum) <$> peek (castPtr p :: Ptr b)
-      pokeIO p (EnumField v) = poke (castPtr p :: Ptr b) (fromCEnum v)
-
-instance
-      ( Integral b
-      , StaticStorable b
-      , CEnum a
-      ) => StaticStorable (EnumField b a)
-   where
       type SizeOf (EnumField b a)    = SizeOf b
       type Alignment (EnumField b a) = Alignment b
-      staticPeekIO p                 = (EnumField . toCEnum) <$> staticPeek (castPtr p :: Ptr b)
-      staticPokeIO p (EnumField v)   = staticPoke (castPtr p :: Ptr b) (fromCEnum v)
+      peekIO p                       = (EnumField . toCEnum) <$> peek (castPtr p :: Ptr b)
+      pokeIO p (EnumField v)         = poke (castPtr p :: Ptr b) (fromCEnum v)
 
 -- | Read an enum field
 fromEnumField :: EnumField b a -> a
