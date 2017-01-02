@@ -1,8 +1,11 @@
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE TypeSynonymInstances #-}
-{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE TypeApplications #-}
 
 import Haskus.Format.Binary.Unum2
+import Haskus.Format.Binary.Bits
+import Haskus.Utils.Types
 
 main :: IO ()
 main = do
@@ -39,3 +42,20 @@ main = do
       s = sornFromList [a1,a2,a3,a4,a5,a6,a7] :: SORN Unum3b
    print s
    print (fmap fromUnum (sornElems s))
+
+
+   let
+      prints :: forall u.
+         ( KnownNat (UnumBitCount u)
+         , Unum u
+         , Num (UnumWord u)
+         , Integral (UnumWord u)
+         , FiniteBits (UnumWord u)
+         , Integral (SORNWord u)
+         , FiniteBits (SORNWord u)
+         ) => UnumSet u -> IO ()
+      prints (AnySet ss) = print (fmap (fromUnum @u) (sornElems ss))
+
+   prints (unumAdd a1 a2)
+   prints (unumAdd a1 a3)
+   prints (unumAdd a1 a4)

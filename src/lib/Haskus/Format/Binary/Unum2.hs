@@ -8,6 +8,9 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE MultiWayIf #-}
 
+-- | Universal numbers
+--
+-- TODO: compressed connected SORNs
 module Haskus.Format.Binary.Unum2
    ( Unum (..)
    , UnumWord
@@ -19,14 +22,27 @@ module Haskus.Format.Binary.Unum2
    , toUnum
    , fromUnum
    , rcp
-   -- * Set of real numbers (SORN)
+   , unumMask
+   , unumNext
+   , unumPrev
+   , unumLowerBound
+   , unumUpperBound
+   -- * Set of real numbers
+   , UnumSet (..)
    , SORN (..)
    , SORNSize
+   , SORNWord
+   , sornMask
    , sornElems
    , sornEmpty
+   , sornFull
    , sornInsert
    , sornRemove
    , sornFromList
+   , sornUnions
+   , sornUnion
+   -- * Operations
+   , unumAdd
    -- * Numeric systems
    , Unum2b (..)
    , Unum3b (..)
@@ -35,6 +51,8 @@ where
 
 import Data.Set as Set
 import GHC.Real
+import qualified Data.Vector as V
+
 import Haskus.Format.Binary.Word
 import Haskus.Format.Binary.Bits
 import Haskus.Utils.Types
@@ -45,7 +63,7 @@ type family UnumWord x where
    UnumWord x = WordAtLeast (UnumBitCount x)
 
 -- | Numeric system
-class Unum x where
+class Eq x => Unum x where
    -- | Number of bits to store a number
    type UnumBitCount x :: Nat
 
@@ -82,6 +100,54 @@ class Unum x where
    unumNegativeMembers = Set.map (0 -) . unumPositiveMembers
 
  
+-- | Mask a Unum Word
+unumMask :: forall u.
+   ( Unum u
+   , FiniteBits (UnumWord u)
+   , KnownNat (UnumBitCount u)
+   ) => UnumWord u -> UnumWord u
+unumMask = maskLeastBits (unumBitCount @u)
+
+-- | Next unum
+unumNext :: forall u.
+   ( Unum u
+   , FiniteBits (UnumWord u)
+   , KnownNat (UnumBitCount u)
+   , Num (UnumWord u)
+   ) => u -> u
+unumNext = unumPack . unumMask @u . (+1) . unumUnpack
+
+-- | Previous unum
+unumPrev :: forall u.
+   ( Unum u
+   , FiniteBits (UnumWord u)
+   , KnownNat (UnumBitCount u)
+   , Num (UnumWord u)
+   ) => u -> u
+unumPrev = unumPack . unumMask @u . (\x -> x-1) . unumUnpack
+
+-- | Exact lower bound
+unumLowerBound ::
+   ( Unum u
+   , FiniteBits (UnumWord u)
+   , Num (UnumWord u)
+   , KnownNat (UnumBitCount u)
+   ) => u -> u
+unumLowerBound u
+   | unumIsExactNumber u = u
+   | otherwise           = unumPrev u
+
+-- | Exact upper bound
+unumUpperBound ::
+   ( Unum u
+   , FiniteBits (UnumWord u)
+   , Num (UnumWord u)
+   , KnownNat (UnumBitCount u)
+   ) => u -> u
+unumUpperBound u
+   | unumIsExactNumber u = u
+   | otherwise           = unumNext u
+
 -- | Reciprocate
 rcp :: Rational -> Rational
 rcp (n :% d) = d :% n
@@ -179,6 +245,15 @@ fromUnum u = (r, unumIsExactNumber u)
 -------------------------------------------------
 -- SORNs
 
+-- | A set of numbers
+data UnumSet u
+   = AnySet (SORN u)
+--   | ConnectedSet (CSORN u) -- TODO: connected sets (compressed)
+
+
+instance Show (SORN u) => Show (UnumSet u) where
+   show (AnySet su) = show su
+
 -- | Set of Real Numbers (SORN)
 newtype SORN u = SORN (SORNWord u)
 
@@ -206,6 +281,14 @@ type family SORNSize u where
 type family SORNWord u where
    SORNWord u = WordAtLeast (SORNSize u)
 
+-- | Mask a SORN Word
+sornMask :: forall u.
+   ( Unum u
+   , FiniteBits (SORNWord u)
+   , KnownNat (SORNSize u)
+   ) => SORNWord u -> SORNWord u
+sornMask = maskLeastBits (natValue @(SORNSize u))
+
 -- | Return SORN elements
 sornElems :: forall u.
    ( Unum u
@@ -230,6 +313,14 @@ sornEmpty ::
    ) => SORN u
 sornEmpty = SORN zeroBits
 
+-- | Full SORN
+sornFull :: forall u.
+   ( Unum u
+   , FiniteBits (SORNWord u)
+   , KnownNat (SORNSize u)
+   ) => SORN u
+sornFull = SORN (sornMask @u (complement zeroBits))
+
 -- | Insert element into a SORN
 sornInsert ::
    ( Unum u
@@ -253,6 +344,80 @@ sornFromList ::
    , FiniteBits (SORNWord u)
    ) => [u] -> SORN u
 sornFromList = List.foldl' sornInsert sornEmpty 
+
+-- | Union of the SORNs
+sornUnions :: forall u.
+   ( FiniteBits (SORNWord u)
+   , Unum u
+   ) => [SORN u] -> SORN u
+sornUnions = List.foldl' sornUnion sornEmpty 
+
+-- | Union of two SORNs
+sornUnion ::
+   ( Unum u
+   , FiniteBits (SORNWord u)
+   ) => SORN u -> SORN u -> SORN u
+sornUnion (SORN x) (SORN y) = SORN (x .|. y)
+
+
+-------------------------------------------------
+-- Operation tables
+
+-- | Add exact unums (except when both are equal to infinity)
+unumAddExact :: forall u.
+   ( Unum u
+   , Integral (UnumWord u)
+   , FiniteBits (UnumWord u)
+   , KnownNat (UnumBitCount u)
+   ) => u -> u -> u
+unumAddExact u1 u2 = if
+   -- inf + x -> inf
+   | r1 == infinity && c1  -> u1
+   | r2 == infinity && c2  -> u2
+   -- x + y -> z
+   | c1 && c2              -> toUnum (r1+r2)
+   | otherwise             -> error "unumAddExact: invalid numbers"
+   where
+      (r1,c1) = fromUnum u1
+      (r2,c2) = fromUnum u2
+
+-- | Unum addition
+-- TODO: use connected sets (compressed)
+unumAdd :: forall u.
+   ( Unum u
+   , Integral (UnumWord u)
+   , FiniteBits (UnumWord u)
+   , KnownNat (UnumBitCount u)
+   , FiniteBits (SORNWord u)
+   , KnownNat (SORNSize u)
+   ) => u -> u -> UnumSet u
+unumAdd u1 u2 = AnySet $ if
+   -- inf + inf -> full set
+   |  r1 == infinity && c1 &&
+      r2 == infinity && c2 -> sornFull
+   | c1 && c2              -> sornFromList [unumAddExact u1 u2]
+   -- ~x +  y -> [~u..~v]
+   --  x + ~y -> [~u..~v]
+   -- ~x + ~y -> [~u..~v]
+   | otherwise             -> sornFromList (range lowb highb)
+
+
+   where
+      (r1,c1) = fromUnum u1
+      (r2,c2) = fromUnum u2
+
+      range :: u -> u -> [u]
+      range x1 x2
+         | x1 == x2  = [x1]
+         | otherwise = x1 : range (unumNext x1) x2
+
+      lowb  = unumNext (unumAddExact (unumLowerBound u1) (unumLowerBound u2))
+      highb = unumPrev (unumAddExact (unumUpperBound u1) (unumUpperBound u2))
+
+
+-- | Table for addition
+-- TODO: use connected sets (compressed)
+newtype TableAdd u = TableAdd (V.Vector (UnumSet u))
 
 -------------------------------------------------
 -- Default numeric systems
