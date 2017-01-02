@@ -10,12 +10,23 @@
 
 module Haskus.Format.Binary.Unum2
    ( Unum (..)
+   , UnumWord
    , unumNegate
    , unumReciprocate
    , unumIsOpenInterval
    , unumIsExactNumber
+   , unumBitCount
    , toUnum
    , fromUnum
+   , rcp
+   -- * Set of real numbers (SORN)
+   , SORN (..)
+   , SORNSize
+   , sornElems
+   , sornEmpty
+   , sornInsert
+   , sornRemove
+   , sornFromList
    -- * Numeric systems
    , Unum2b (..)
    , Unum3b (..)
@@ -28,6 +39,7 @@ import Haskus.Format.Binary.Word
 import Haskus.Format.Binary.Bits
 import Haskus.Utils.Types
 import Haskus.Utils.Flow
+import Haskus.Utils.List as List
 
 type family UnumWord x where
    UnumWord x = WordAtLeast (UnumBitCount x)
@@ -164,6 +176,83 @@ fromUnum u = (r, unumIsExactNumber u)
          | signed           -> Set.elemAt (i-1) (unumNegativeMembers (undefined :: u))
          | otherwise        -> Set.elemAt (i-1) (unumPositiveMembers (undefined :: u))
    
+-------------------------------------------------
+-- SORNs
+
+-- | Set of Real Numbers (SORN)
+newtype SORN u = SORN (SORNWord u)
+
+instance Eq (SORNWord u) => Eq (SORN u) where
+   (==) (SORN a) (SORN b) = a == b
+
+instance Ord (SORNWord u) => Ord (SORN u) where
+   compare (SORN a) (SORN b) = compare a b
+
+instance
+   ( Show u
+   , Unum u
+   , KnownNat (UnumBitCount u)
+   , Num (UnumWord u)
+   , FiniteBits (UnumWord u)
+   , Eq (SORNWord u)
+   , FiniteBits (SORNWord u)
+   ) => Show (SORN u)
+   where
+      show su = "fromList " ++ show (sornElems su)
+
+type family SORNSize u where
+   SORNSize u = Pow 2 (UnumBitCount u)
+
+type family SORNWord u where
+   SORNWord u = WordAtLeast (SORNSize u)
+
+-- | Return SORN elements
+sornElems :: forall u.
+   ( Unum u
+   , KnownNat (UnumBitCount u)
+   , Num (UnumWord u)
+   , Eq (SORNWord u)
+   , FiniteBits (SORNWord u)
+   ) => SORN u -> [u]
+sornElems (SORN su) = go su
+   where
+      go w
+         | w == zeroBits = []
+         | otherwise     = unumPack w' : go (clearBit w c)
+            where
+               w' = fromIntegral c :: UnumWord u
+               c = countTrailingZeros w
+
+-- | Empty SORN
+sornEmpty ::
+   ( Unum u
+   , FiniteBits (SORNWord u)
+   ) => SORN u
+sornEmpty = SORN zeroBits
+
+-- | Insert element into a SORN
+sornInsert ::
+   ( Unum u
+   , FiniteBits (SORNWord u)
+   , Integral (UnumWord u)
+   ) => SORN u -> u -> SORN u
+sornInsert (SORN w) u = SORN (setBit w (fromIntegral (unumUnpack u)))
+
+-- | Remove element into a SORN
+sornRemove ::
+   ( Unum u
+   , FiniteBits (SORNWord u)
+   , Integral (UnumWord u)
+   ) => SORN u -> u -> SORN u
+sornRemove (SORN w) u = SORN (clearBit w (fromIntegral (unumUnpack u)))
+
+-- | Create a SORN from a list
+sornFromList ::
+   ( Unum u
+   , Integral (UnumWord u)
+   , FiniteBits (SORNWord u)
+   ) => [u] -> SORN u
+sornFromList = List.foldl' sornInsert sornEmpty 
 
 -------------------------------------------------
 -- Default numeric systems

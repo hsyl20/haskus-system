@@ -27,3 +27,15 @@ main = do
 
    print (fromUnum (toUnum (-1) :: Unum3b))
    print (fromUnum (toUnum (-1.5) :: Unum3b))
+
+   let
+      a1 = toUnum (-1)
+      a2 = toUnum (0)
+      a3 = toUnum (1)
+      a4 = toUnum (1.5)
+      a5 = toUnum (-3.5)
+      a6 = toUnum (0.5)
+      a7 = toUnum (0.6)
+      s = sornFromList [a1,a2,a3,a4,a5,a6,a7] :: SORN Unum3b
+   print s
+   print (fmap fromUnum (sornElems s))

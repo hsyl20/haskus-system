@@ -26,6 +26,7 @@ module Haskus.Utils.Types
    , If
    , IfNat
    , Modulo
+   , Pow
    , Same
    , Proxy (..)
    , TypeError
@@ -74,3 +75,9 @@ type family Modulo' c a b where
 type family Same a b :: Nat where
    Same a a = 1
    Same a b = 0
+
+-- | Pow
+type family Pow (a :: Nat) (b :: Nat) where
+   Pow a 0 = 1
+   Pow a 1 = a
+   Pow a n = a * Pow a (n-1)
