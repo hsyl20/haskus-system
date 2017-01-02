@@ -1,11 +1,23 @@
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE MultiWayIf #-}
 
 module Haskus.Format.Binary.Unum2
-   ( IsUnum (..)
+   ( Unum (..)
+   , unumNegate
+   , unumReciprocate
+   , unumIsOpenInterval
+   , unumIsExactNumber
+   , toUnum
+   -- * Numeric systems
+   , Unum2b (..)
+   , Unum3b (..)
    )
 where
 
@@ -13,12 +25,22 @@ import Data.Set as Set
 import GHC.Real
 import Haskus.Format.Binary.Word
 import Haskus.Format.Binary.Bits
+import Haskus.Utils.Types
+import Haskus.Utils.Flow
 
-class IsUnum x where
+type family UnumWord x where
+   UnumWord x = WordAtLeast (UnumBitCount x)
+
+-- | Numeric system
+class Unum x where
    -- | Number of bits to store a number
    type UnumBitCount x :: Nat
 
-   type UnumWord x = WordAtLeast (UnumBitCount x)
+   -- | Pack a number
+   unumPack :: UnumWord x -> x
+
+   -- | Unpack a number
+   unumUnpack :: x -> UnumWord x
 
    -- Strictly positive exact members of the numeric system without their reciprocals
    --
@@ -27,8 +49,8 @@ class IsUnum x where
    unumInputMembers :: x -> Set Rational
 
    -- | All the exact members of the numeric system (including `infinity`)
-   unumMembers :: x -> Set Rational
-   unumMembers x = Set.unions
+   unumExactMembers :: x -> Set Rational
+   unumExactMembers x = Set.unions
       [ unumPositiveMembers x
       , unumNegativeMembers x
       , Set.singleton 0
@@ -44,41 +66,98 @@ class IsUnum x where
 
    -- | Negative members
    unumNegativeMembers :: x -> Set Rational
-   unumNegativeMembers x = Set.map (0 -) poss
+   unumNegativeMembers = Set.map (0 -) . unumPositiveMembers
 
  
 -- | Reciprocate
 rcp :: Rational -> Rational
 rcp (n :% d) = d :% n
 
+unumIsOpenInterval :: 
+   ( FiniteBits (UnumWord u)
+   , Unum u
+   ) => u -> Bool
+{-# INLINE unumIsOpenInterval #-}
+unumIsOpenInterval u = testBit (unumUnpack u) 0
 
-data Unum a = U (UnumWord a)
-
-unumIsOpenInterval :: FiniteBits (UnumWord a) => Unum a -> Bool
-unumIsOpenInterval (U w) = testBit w 0
-
-unumIsExactNumber :: FiniteBits (UnumWord a) => Unum a -> Bool
+unumIsExactNumber ::
+   ( FiniteBits (UnumWord u)
+   , Unum u
+   ) => u -> Bool
+{-# INLINE unumIsExactNumber #-}
 unumIsExactNumber = not . unumIsOpenInterval
 
 unumBitCount :: forall u. (KnownNat (UnumBitCount u)) => Word
 unumBitCount = natValue @(UnumBitCount u)
 
 -- | Negate a number
-unumNegate :: FiniteBits (UnumWord a) => Unum a -> Unum a
+unumNegate :: forall u.
+   ( FiniteBits (UnumWord u)
+   , Num (UnumWord u)
+   , KnownNat (UnumBitCount u)
+   , Unum u
+   ) => u -> u
 {-# INLINE unumNegate #-}
-unumNegate (U w) = U (maskLeastBits s (complement w + 1))
-   where
-      s = unumBitCount @u
+unumNegate u =
+   unumPack
+   <| maskLeastBits (unumBitCount @u)
+   <| complement (unumUnpack u) + 1
 
 -- | Reciprocate a number
 unumReciprocate :: forall u.
    ( FiniteBits (UnumWord u)
    , Num (UnumWord u)
    , KnownNat (UnumBitCount u)
-   ) => U u -> U u
+   , Unum u
+   ) => u -> u
 {-# INLINE unumReciprocate #-}
-unumReciprocate (U w) = U (w `xor` m + 1)
+unumReciprocate u =
+   unumPack
+   <| (unumUnpack u `xor` m + 1)
    where
       s = unumBitCount @u
       m = makeMask (s-1)
 
+toUnum :: forall u.
+   ( Unum u
+   , FiniteBits (UnumWord u)
+   , Num (UnumWord u)
+   , KnownNat (UnumBitCount u)
+   ) => Rational -> u
+toUnum x
+   | x < 0     = unumNegate      (toUnum (0 - x))
+   | x == 0    = unumPack 0
+   | x < 1     = unumReciprocate (toUnum (rcp x))
+   | otherwise = case go 0 x es of
+         (b,certain) -> unumPack ((b `shiftL` 1) .|. if certain then 0 else 1)
+      where
+         es = 0 : Set.toAscList (unumPositiveMembers (undefined :: u))
+
+         go _ _ []         = error "toUnum: empty member list"
+         go i b [x1]       = if b == x1 then (i,True) else (i,False)
+         go i b (x1:x2:xs) = if
+            | b < x1    -> error "toUnum: invalid number"
+            | b == x1   -> (i,True)
+            | b < x2    -> (i,False)
+            | otherwise -> go (i+1) b (x2:xs)
+
+-------------------------------------------------
+-- Default numeric systems
+
+-- | 2-bit Unum
+newtype Unum2b = Unum2b Word8 deriving (Show,Eq,Ord)
+
+instance Unum Unum2b where
+   type UnumBitCount Unum2b = 2
+   unumPack                 = Unum2b
+   unumUnpack (Unum2b x)    = x
+   unumInputMembers _       = Set.fromList []
+
+-- | 3-bit Unum
+newtype Unum3b = Unum3b Word8 deriving (Show,Eq,Ord)
+
+instance Unum Unum3b where
+   type UnumBitCount Unum3b = 3
+   unumPack                 = Unum3b
+   unumUnpack (Unum3b x)    = x
+   unumInputMembers _       = Set.fromList [1]
