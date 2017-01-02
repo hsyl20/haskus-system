@@ -24,3 +24,6 @@ main = do
    print (unumReciprocate (toUnum 0) :: Unum3b)
    print (unumNegate (toUnum (-1) :: Unum3b))
    print (unumReciprocate (toUnum (-1) :: Unum3b))
+
+   print (fromUnum (toUnum (-1) :: Unum3b))
+   print (fromUnum (toUnum (-1.5) :: Unum3b))

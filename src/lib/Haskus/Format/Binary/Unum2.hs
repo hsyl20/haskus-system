@@ -15,6 +15,7 @@ module Haskus.Format.Binary.Unum2
    , unumIsOpenInterval
    , unumIsExactNumber
    , toUnum
+   , fromUnum
    -- * Numeric systems
    , Unum2b (..)
    , Unum3b (..)
@@ -118,6 +119,7 @@ unumReciprocate u =
       s = unumBitCount @u
       m = makeMask (s-1)
 
+-- | Build a number from a Rational
 toUnum :: forall u.
    ( Unum u
    , FiniteBits (UnumWord u)
@@ -140,6 +142,28 @@ toUnum x
             | b == x1   -> (i,True)
             | b < x2    -> (i,False)
             | otherwise -> go (i+1) b (x2:xs)
+
+-- | Return a Rational and the uncertainty bit from a number
+--
+-- TODO: currently we use Set.elemAt which is O(log n). We may want to use an
+-- O(1) array generated statically if possible.
+fromUnum :: forall u.
+   ( Unum u
+   , FiniteBits (UnumWord u)
+   , Integral (UnumWord u)
+   , KnownNat (UnumBitCount u)
+   ) => u -> (Rational,Bool)
+fromUnum u = (r, unumIsExactNumber u)
+   where
+      w = unumUnpack u `shiftR` 1
+      signed = testBit w (fromIntegral (unumBitCount @u - 2))
+      i      = fromIntegral <| clearBit w (fromIntegral (unumBitCount @u - 2))
+      r = if
+         | signed && i == 0 -> infinity
+         |           i == 0 -> 0
+         | signed           -> Set.elemAt (i-1) (unumNegativeMembers (undefined :: u))
+         | otherwise        -> Set.elemAt (i-1) (unumPositiveMembers (undefined :: u))
+   
 
 -------------------------------------------------
 -- Default numeric systems
