@@ -191,6 +191,7 @@ library
     Haskus.Format.Binary.Vector
     Haskus.Format.Binary.Union
     Haskus.Format.Binary.Unum
+    Haskus.Format.Binary.Unum2
     Haskus.Format.Binary.Record
     Haskus.Format.Binary.Storable
     Haskus.Format.Binary.Word
