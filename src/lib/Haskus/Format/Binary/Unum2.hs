@@ -804,7 +804,10 @@ instance forall u.
 
 
 class ReflNum x where
+   -- | Reflexive multiplication
    square :: x -> x
+
+   -- | Reflexive addition
    double :: x -> x
 
 instance forall u.
