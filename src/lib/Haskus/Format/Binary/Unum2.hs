@@ -712,7 +712,6 @@ unumMul u1 u2 = AnySet $ if
 -- | Unum division
 unumDiv :: forall u.
    ( Unum u
-   , Show u
    , Integral (UnumWord u)
    , FiniteBits (UnumWord u)
    , KnownNat (UnumBitCount u)
@@ -769,20 +768,56 @@ instance Unum Unum3b where
    unumUnpack (Unum3b x)    = x
    unumInputMembers _       = Set.fromList [1]
 
-instance Num (UnumSet Unum3b) where
-   (*) = unumLiftOpIndep @Unum3b unumMul
-   (+) = unumLiftOpIndep @Unum3b unumAdd
-   (-) = unumLiftOpIndep @Unum3b unumSub
 
-instance Fractional (UnumSet Unum3b) where
-   (/)          = unumLiftOpIndep @Unum3b unumDiv
-   fromRational = AnySet . sornInsert (sornEmpty @Unum3b) . toUnum
+
+
+instance forall u.
+   ( Unum u
+   , FiniteBits (SORNWord u)
+   , Num (SORNWord u)
+   , Num (UnumWord u)
+   , FiniteBits (UnumWord u)
+   , KnownNat (UnumBitCount u)
+   , Integral (SORNWord u)
+   , Integral (UnumWord u)
+   , KnownNat (SORNSize u)
+   ) => Num (UnumSet u)
+   where
+      (*) = unumLiftOpIndep @u unumMul
+      (+) = unumLiftOpIndep @u unumAdd
+      (-) = unumLiftOpIndep @u unumSub
+
+instance forall u.
+   ( Unum u
+   , FiniteBits (SORNWord u)
+   , Num (SORNWord u)
+   , Num (UnumWord u)
+   , FiniteBits (UnumWord u)
+   , KnownNat (UnumBitCount u)
+   , Integral (SORNWord u)
+   , Integral (UnumWord u)
+   , KnownNat (SORNSize u)
+   ) => Fractional (UnumSet u)
+   where
+      (/)          = unumLiftOpIndep @u unumDiv
+      fromRational = AnySet . sornInsert (sornEmpty @u) . toUnum
 
 
 class ReflNum x where
    square :: x -> x
    double :: x -> x
 
-instance ReflNum (UnumSet Unum3b) where
-   square = unumLiftOpDep @Unum3b unumMul
-   double = unumLiftOpDep @Unum3b unumAdd
+instance forall u.
+   ( Unum u
+   , FiniteBits (SORNWord u)
+   , Num (SORNWord u)
+   , Num (UnumWord u)
+   , FiniteBits (UnumWord u)
+   , KnownNat (UnumBitCount u)
+   , Integral (SORNWord u)
+   , Integral (UnumWord u)
+   , KnownNat (SORNSize u)
+   ) => ReflNum (UnumSet u)
+   where
+      square = unumLiftOpDep @u unumMul
+      double = unumLiftOpDep @u unumAdd

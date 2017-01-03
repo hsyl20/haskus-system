@@ -86,6 +86,7 @@ main = do
          , (c1*(double c2 + double c3 + c4 + c2)          ∋ toUnum (40616 % 10000))
          , (s1*(double c2 + double c3 + c4 + c2)          ∋ toUnum (17172 % 10000))
          ]
+      testKin _ _ = error "Invalid input"
 
       --vs = unumSetSubsets (unumSetFromList (unumRange (toUnum (-1)) (toUnum 1)))
       vs = unumSetSubsets (unumSetFromList [toUnum (-1), unumPrev (toUnum 0), toUnum 0])
