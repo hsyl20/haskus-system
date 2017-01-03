@@ -11,6 +11,7 @@
 -- | Universal numbers
 --
 -- TODO: compressed connected SORNs
+-- TODO: use table-lookup for operations
 module Haskus.Format.Binary.Unum2
    ( Unum (..)
    , UnumWord
@@ -58,7 +59,6 @@ where
 
 import Data.Set as Set
 import GHC.Real
---import qualified Data.Vector as V
 
 import Haskus.Format.Binary.Word
 import Haskus.Format.Binary.Bits
@@ -202,6 +202,7 @@ unumSign :: forall u.
    , Num (UnumWord u)
    , FiniteBits (UnumWord u)
    ) => u -> Sign
+{-# INLINE unumSign #-}
 unumSign u = if n == 0
       then NoSign
       else if s
@@ -219,6 +220,7 @@ unumInfinity :: forall u.
    , Num (UnumWord u)
    , KnownNat (UnumBitCount u)
    ) => u
+{-# INLINE unumInfinity #-}
 unumInfinity = unumPack (bit (fromIntegral (unumBitCount @u - 1)))
 
 -- | Unum zero
@@ -226,6 +228,7 @@ unumZero ::
    ( Unum u
    , FiniteBits (UnumWord u)
    ) => u
+{-# INLINE unumZero #-}
 unumZero = unumPack zeroBits
 
 
@@ -409,7 +412,7 @@ sornUnion (SORN x) (SORN y) = SORN (x .|. y)
 
 
 -------------------------------------------------
--- Operation tables
+-- Operations
 
 unumRange ::
    ( Unum u
@@ -539,10 +542,6 @@ unumDiv :: forall u.
    , KnownNat (SORNSize u)
    ) => u -> u -> UnumSet u
 unumDiv u1 u2 = unumMul u1 (unumReciprocate u2)
-
--- | Table for addition
--- TODO: use connected sets (compressed)
---newtype TableAdd u = TableAdd (V.Vector (UnumSet u))
 
 -------------------------------------------------
 -- Default numeric systems
