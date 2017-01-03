@@ -70,40 +70,25 @@ main = do
 
    putStrLn "Test lifted operations"
 
-   let
-      addDep   = unumLiftOpDep @Unum3b unumAdd
-      addIndep = unumLiftOpIndep @Unum3b unumAdd
-      subDep   = unumLiftOpDep @Unum3b unumSub
-      subIndep = unumLiftOpIndep @Unum3b unumSub
-      mulDep   = unumLiftOpDep @Unum3b unumMul
-      mulIndep = unumLiftOpIndep @Unum3b unumMul
-      divDep   = unumLiftOpDep @Unum3b unumDiv
-      divIndep = unumLiftOpIndep @Unum3b unumDiv
-
-   print (addIndep (unumMul a1 a6) (unumDiv a5 a7))
-   print (addIndep (unumMul a1 a6) (unumMul a5 a7))
+   print ((unumMul a1 a6) + (unumDiv a5 a7))
+   print ((unumMul a1 a6) + (unumMul a5 a7))
 
 
    putStrLn "Kinematics test"
    let
-      constU :: Rational -> UnumSet Unum3b
-      constU x = constV (toUnum x)
-
-      constV :: Unum3b  -> UnumSet Unum3b
-      constV x = AnySet (sornInsert (sornEmpty @Unum3b) x)
-
       testKin :: [UnumSet Unum3b] -> [UnumSet Unum3b] -> Bool
-      testKin cs@[c1,c2,c3,c4,c5,c6] ss@[s1,s2,s3,s4,s5,s6] =
-         ( (s2 + s3 + s4 + s2 + s3 + s2                    ∋ toUnum (39701 % 10000))
-         && (all (\(ci,si) -> mulDep si + mulDep ci  ∋ toUnum 1) (cs `zip` ss))
-         && (s2*c5*s6 - s3*c5*s6 - s4*c5*c6 + c2*c6 +c3*c6 +c4*c6 ∋ toUnum (4077 % 10000))
-         && (c1*c2*s5 + c1*c3*s5 + c1*c4*s5 + s1*c5        ∋ toUnum (19115 % 10000))
-         && (s2*s5 + s3*s5 + s4*s5                         ∋ toUnum (19791 % 10000))
-         && (c1*c2 + c1*c3 + c1*c4 + c1*c2 + c1*c3 + c1*c2 ∋ toUnum (40616 % 10000))
-         && (s1*c2 + s1*c3 + s1*c4 + s1*c2 + s1*c3 + s1*c2 ∋ toUnum (17172 % 10000))
-         )
+      testKin cs@[c1,c2,c3,c4,c5,c6] ss@[s1,s2,s3,s4,s5,s6] = and
+         [ (double s2 + double s3 + s4 + s2               ∋ toUnum (39701 % 10000))
+         , (all (\(ci,si) -> square si + square ci  ∋ toUnum 1) (cs `zip` ss))
+         , (s2*c5*s6 - s3*c5*s6 - s4*c5*c6 + c2*c6 +c3*c6 +c4*c6 ∋ toUnum (4077 % 10000))
+         , (c1*c2*s5 + c1*c3*s5 + c1*c4*s5 + s1*c5        ∋ toUnum (19115 % 10000))
+         , ((s2+s3+s4)*s5                                 ∋ toUnum (19791 % 10000))
+         , (c1*(double c2 + double c3 + c4 + c2)          ∋ toUnum (40616 % 10000))
+         , (s1*(double c2 + double c3 + c4 + c2)          ∋ toUnum (17172 % 10000))
+         ]
 
-      vs = fmap constV (unumRange (toUnum (-1)) (toUnum 1))
+      --vs = unumSetSubsets (unumSetFromList (unumRange (toUnum (-1)) (toUnum 1)))
+      vs = unumSetSubsets (unumSetFromList [toUnum (-1), unumPrev (toUnum 0), toUnum 0])
 
       vs' = [ ([c1,c2,c3,c4,c5,c6],[s1,s2,s3,s4,s5,s6])
             | c1 <- vs
@@ -122,10 +107,3 @@ main = do
 
    print (length (filter (uncurry testKin) vs'))
 
-instance Num (UnumSet Unum3b) where
-   (*) = unumLiftOpIndep @Unum3b unumMul
-   (+) = unumLiftOpIndep @Unum3b unumAdd
-   (-) = unumLiftOpIndep @Unum3b unumSub
-
-instance Fractional (UnumSet Unum3b) where
-   (/) = unumLiftOpIndep @Unum3b unumDiv

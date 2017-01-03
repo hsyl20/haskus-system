@@ -6,6 +6,7 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiWayIf #-}
 
 -- | Universal numbers
@@ -35,6 +36,8 @@ module Haskus.Format.Binary.Unum2
    -- * Unum set
    , UnumSet (..)
    , unumSetElems
+   , unumSetSubsets
+   , unumSetFromList
    , unumSetUnions
    , unumSetMember
    , (∈)
@@ -67,6 +70,7 @@ module Haskus.Format.Binary.Unum2
    -- * Numeric systems
    , Unum2b (..)
    , Unum3b (..)
+   , ReflNum (..)
    )
 where
 
@@ -329,6 +333,26 @@ unumSetElems ::
    , KnownNat (UnumBitCount u)
    ) => UnumSet u -> [u]
 unumSetElems (AnySet su) = sornElems su
+
+-- | Subsets of the set
+unumSetSubsets ::
+   ( Unum u
+   , Num (UnumWord u)
+   , Integral (UnumWord u)
+   , FiniteBits (UnumWord u)
+   , FiniteBits (SORNWord u)
+   , KnownNat (UnumBitCount u)
+   ) => UnumSet u -> [UnumSet u]
+unumSetSubsets = fmap (\x -> unumSetFromList [x]) . unumSetElems
+
+
+-- | Create a set from a list
+unumSetFromList ::
+   ( Unum u
+   , Integral (UnumWord u)
+   , FiniteBits (SORNWord u)
+   ) => [u] -> UnumSet u
+unumSetFromList = AnySet . sornFromList
 
 -- | Union of unum sets
 unumSetUnions ::
@@ -744,3 +768,21 @@ instance Unum Unum3b where
    unumPack                 = Unum3b
    unumUnpack (Unum3b x)    = x
    unumInputMembers _       = Set.fromList [1]
+
+instance Num (UnumSet Unum3b) where
+   (*) = unumLiftOpIndep @Unum3b unumMul
+   (+) = unumLiftOpIndep @Unum3b unumAdd
+   (-) = unumLiftOpIndep @Unum3b unumSub
+
+instance Fractional (UnumSet Unum3b) where
+   (/)          = unumLiftOpIndep @Unum3b unumDiv
+   fromRational = AnySet . sornInsert (sornEmpty @Unum3b) . toUnum
+
+
+class ReflNum x where
+   square :: x -> x
+   double :: x -> x
+
+instance ReflNum (UnumSet Unum3b) where
+   square = unumLiftOpDep @Unum3b unumMul
+   double = unumLiftOpDep @Unum3b unumAdd
