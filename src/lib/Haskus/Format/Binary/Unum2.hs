@@ -45,6 +45,7 @@ module Haskus.Format.Binary.Unum2
    , sornEmpty
    , sornFull
    , sornInsert
+   , sornMember
    , sornRemove
    , sornFromList
    , sornUnions
@@ -341,17 +342,67 @@ instance Eq (SORNWord u) => Eq (SORN u) where
 instance Ord (SORNWord u) => Ord (SORN u) where
    compare (SORN a) (SORN b) = compare a b
 
-instance
+instance forall u.
    ( Show u
    , Unum u
    , KnownNat (UnumBitCount u)
+   , KnownNat (SORNSize u)
    , Num (UnumWord u)
+   , Integral (UnumWord u)
    , FiniteBits (UnumWord u)
    , Eq (SORNWord u)
+   , Num (SORNWord u)
    , FiniteBits (SORNWord u)
    ) => Show (SORN u)
    where
-      show su = "fromList " ++ show (sornElems su)
+      show su
+         | su == sornEmpty = "∅"
+         | su == sornFull  = "[-∞,+∞]"
+         | otherwise       = uns
+         where
+            xs  = unumInfinity : takeWhile (/= unumInfinity) (fmap unumNext xs)
+            showBound lu b =
+               let (n :% d) = fst <| fromUnum @u
+                                  <| if lu || unumIsExactNumber b
+                                       then b
+                                       else unumNext b
+                   brack x = case (lu,unumIsExactNumber b) of
+                     (True, True)   -> "[" ++ x
+                     (True, False)  -> "(" ++ x
+                     (False,True)   -> x ++ "]"
+                     (False,False)  -> x ++ ")"
+               in
+               brack <| case d of
+                  0 -> if lu then "-∞" else "+∞"
+                  1 -> show n
+                  _ -> show n ++ "/" ++ show d
+
+            showSingle b =
+               let (n :% d) = fst <| fromUnum @u b
+               in 
+               case d of
+                  0 -> "[±∞]"
+                  1 -> "["++show n++"]"
+                  _ -> "["++show n ++ "/" ++ show d++"]"
+
+            uns = (xs ++ [unumInfinity @u])
+                    |> groupBy (\x y -> sornMember su x == sornMember su y)
+                    |> List.filter (sornMember su . head)
+                    ||> (\ys -> (head ys,last ys))
+                    |> (\ys -> if head ys == (unumInfinity,unumInfinity)
+                                 then tail ys
+                                 else if last ys == (unumInfinity,unumInfinity)
+                                    then init ys
+                                    else ys)
+                    ||> (\(lb,ub) ->
+                     if lb == ub && unumIsExactNumber lb
+                        then showSingle lb
+                        else showBound True lb
+                           ++ ","
+                           ++ showBound False ub)
+                    |> List.intersperse " ∪ "
+                    |> concat
+
 
 type family SORNSize u where
    SORNSize u = Pow 2 (UnumBitCount u)
@@ -406,6 +457,14 @@ sornInsert ::
    , Integral (UnumWord u)
    ) => SORN u -> u -> SORN u
 sornInsert (SORN w) u = SORN (setBit w (fromIntegral (unumUnpack u)))
+
+-- | Test for an element
+sornMember ::
+   ( Unum u
+   , FiniteBits (SORNWord u)
+   , Integral (UnumWord u)
+   ) => SORN u -> u -> Bool
+sornMember (SORN w) u = testBit w (fromIntegral (unumUnpack u))
 
 -- | Remove element into a SORN
 sornRemove ::

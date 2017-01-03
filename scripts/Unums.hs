@@ -4,8 +4,6 @@
 {-# LANGUAGE TypeApplications #-}
 
 import Haskus.Format.Binary.Unum2
-import Haskus.Format.Binary.Bits
-import Haskus.Utils.Types
 
 main :: IO ()
 main = do
@@ -43,38 +41,30 @@ main = do
    print s
    print (fmap fromUnum (sornElems s))
 
-
    let
-      prints :: forall u.
-         ( KnownNat (UnumBitCount u)
-         , Unum u
-         , Num (UnumWord u)
-         , Integral (UnumWord u)
-         , FiniteBits (UnumWord u)
-         , Integral (SORNWord u)
-         , FiniteBits (SORNWord u)
-         ) => UnumSet u -> IO ()
-      prints (AnySet ss) = print (fmap (fromUnum @u) (sornElems ss))
+      exs = sornFromList (filter unumIsExactNumber (sornElems (sornFull @Unum3b)))
+   print exs
+
 
    putStrLn "Test addition"
-   prints (unumAdd a1 a2)
-   prints (unumAdd a1 a3)
-   prints (unumAdd a1 a4)
-   prints (unumAdd a5 a5)
+   print (unumAdd a1 a2)
+   print (unumAdd a1 a3)
+   print (unumAdd a1 a4)
+   print (unumAdd a5 a5)
 
    putStrLn "Test multiplication"
-   prints (unumMul a1 a2)
-   prints (unumMul a2 a2)
-   prints (unumMul a3 a3)
-   prints (unumMul a1 a1)
-   prints (unumMul a1 a3)
-   prints (unumMul a1 a6)
-   prints (unumMul a1 a4)
-   prints (unumMul a5 a5)
+   print (unumMul a1 a2)
+   print (unumMul a2 a2)
+   print (unumMul a3 a3)
+   print (unumMul a1 a1)
+   print (unumMul a1 a3)
+   print (unumMul a1 a6)
+   print (unumMul a1 a4)
+   print (unumMul a5 a5)
 
    putStrLn "Test division"
-   prints (unumDiv a1 a2)
-   prints (unumDiv a6 a7)
+   print (unumDiv a1 a2)
+   print (unumDiv a6 a7)
 
    putStrLn "Test lifted operations"
 
