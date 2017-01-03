@@ -14,6 +14,8 @@
 module Haskus.Format.Binary.Unum2
    ( Unum (..)
    , UnumWord
+   , unumInfinity
+   , unumZero
    , unumNegate
    , unumReciprocate
    , unumIsOpenInterval
@@ -27,6 +29,8 @@ module Haskus.Format.Binary.Unum2
    , unumPrev
    , unumLowerBound
    , unumUpperBound
+   , Sign (..)
+   , unumSign
    -- * Set of real numbers
    , UnumSet (..)
    , SORN (..)
@@ -43,6 +47,7 @@ module Haskus.Format.Binary.Unum2
    , sornUnion
    -- * Operations
    , unumAdd
+   , unumMul
    -- * Numeric systems
    , Unum2b (..)
    , Unum3b (..)
@@ -51,7 +56,7 @@ where
 
 import Data.Set as Set
 import GHC.Real
-import qualified Data.Vector as V
+--import qualified Data.Vector as V
 
 import Haskus.Format.Binary.Word
 import Haskus.Format.Binary.Bits
@@ -99,7 +104,7 @@ class Eq x => Unum x where
    unumNegativeMembers :: x -> Set Rational
    unumNegativeMembers = Set.map (0 -) . unumPositiveMembers
 
- 
+
 -- | Mask a Unum Word
 unumMask :: forall u.
    ( Unum u
@@ -133,9 +138,7 @@ unumLowerBound ::
    , Num (UnumWord u)
    , KnownNat (UnumBitCount u)
    ) => u -> u
-unumLowerBound u
-   | unumIsExactNumber u = u
-   | otherwise           = unumPrev u
+unumLowerBound = unumPack . (`clearBit` 0) . unumUnpack
 
 -- | Exact upper bound
 unumUpperBound ::
@@ -182,6 +185,48 @@ unumNegate u =
    <| maskLeastBits (unumBitCount @u)
    <| complement (unumUnpack u) + 1
 
+
+data Sign
+   = Negative
+   | Positive
+   | NoSign
+   deriving (Show,Eq,Ord)
+
+-- | Get unum sign
+unumSign :: forall u.
+   ( Unum u
+   , KnownNat (UnumBitCount u)
+   , Eq (UnumWord u)
+   , Num (UnumWord u)
+   , FiniteBits (UnumWord u)
+   ) => u -> Sign
+unumSign u = if n == 0
+      then NoSign
+      else if s
+         then Negative
+         else Positive
+   where
+      w = unumUnpack u
+      s = testBit w (fromIntegral (unumBitCount @u - 1))
+      n = clearBit w (fromIntegral (unumBitCount @u - 1))
+
+-- | Unum infinity
+unumInfinity :: forall u.
+   ( Unum u
+   , FiniteBits (UnumWord u)
+   , Num (UnumWord u)
+   , KnownNat (UnumBitCount u)
+   ) => u
+unumInfinity = unumPack (bit (fromIntegral (unumBitCount @u - 1)))
+
+-- | Unum zero
+unumZero ::
+   ( Unum u
+   , FiniteBits (UnumWord u)
+   ) => u
+unumZero = unumPack zeroBits
+
+
 -- | Reciprocate a number
 unumReciprocate :: forall u.
    ( FiniteBits (UnumWord u)
@@ -205,10 +250,11 @@ toUnum :: forall u.
    , KnownNat (UnumBitCount u)
    ) => Rational -> u
 toUnum x
-   | x < 0     = unumNegate      (toUnum (0 - x))
-   | x == 0    = unumPack 0
-   | x < 1     = unumReciprocate (toUnum (rcp x))
-   | otherwise = case go 0 x es of
+   | x == infinity = unumInfinity
+   | x < 0         = unumNegate      (toUnum (0 - x))
+   | x == 0        = unumPack 0
+   | x < 1         = unumReciprocate (toUnum (rcp x))
+   | otherwise     = case go 0 x es of
          (b,certain) -> unumPack ((b `shiftL` 1) .|. if certain then 0 else 1)
       where
          es = 0 : Set.toAscList (unumPositiveMembers (undefined :: u))
@@ -363,7 +409,18 @@ sornUnion (SORN x) (SORN y) = SORN (x .|. y)
 -------------------------------------------------
 -- Operation tables
 
--- | Add exact unums (except when both are equal to infinity)
+unumRange ::
+   ( Unum u
+   , Num (UnumWord u)
+   , FiniteBits (UnumWord u)
+   , KnownNat (UnumBitCount u)
+   ) => u -> u -> [u]
+unumRange x1 x2
+   | x1 == x2  = [x1]
+   | otherwise = x1 : unumRange (unumNext x1) x2
+
+-- | Add exact unums.
+-- Warning: infinity + infinity = infinity
 unumAddExact :: forall u.
    ( Unum u
    , Integral (UnumWord u)
@@ -393,31 +450,75 @@ unumAdd :: forall u.
    ) => u -> u -> UnumSet u
 unumAdd u1 u2 = AnySet $ if
    -- inf + inf -> full set
-   |  r1 == infinity && c1 &&
-      r2 == infinity && c2 -> sornFull
-   | c1 && c2              -> sornFromList [unumAddExact u1 u2]
+   | r1 == infinity && c1 &&
+     r2 == infinity && c2 -> sornFull
+   | c1 && c2             -> sornFromList [unumAddExact u1 u2]
    -- ~x +  y -> [~u..~v]
    --  x + ~y -> [~u..~v]
    -- ~x + ~y -> [~u..~v]
-   | otherwise             -> sornFromList (range lowb highb)
-
-
+   | otherwise            -> sornFromList (unumRange lowb highb)
    where
       (r1,c1) = fromUnum u1
       (r2,c2) = fromUnum u2
-
-      range :: u -> u -> [u]
-      range x1 x2
-         | x1 == x2  = [x1]
-         | otherwise = x1 : range (unumNext x1) x2
 
       lowb  = unumNext (unumAddExact (unumLowerBound u1) (unumLowerBound u2))
       highb = unumPrev (unumAddExact (unumUpperBound u1) (unumUpperBound u2))
 
 
+-- | Unum multiplication
+-- TODO: use connected sets (compressed)
+unumMul :: forall u.
+   ( Unum u
+   , Show u
+   , Integral (UnumWord u)
+   , FiniteBits (UnumWord u)
+   , KnownNat (UnumBitCount u)
+   , FiniteBits (SORNWord u)
+   , KnownNat (SORNSize u)
+   ) => u -> u -> UnumSet u
+unumMul u1 u2 = AnySet $ if
+   -- inf * inf -> inf
+   | r1 == infinity && c1 &&
+     r2 == infinity && c2 -> sornFromList [u1]
+   -- inf * 0 -> empty set
+   | r1 == infinity && c1 &&
+     r2 == 0        && c2 -> sornEmpty
+   | r2 == infinity && c2 &&
+     r1 == 0        && c1 -> sornEmpty
+   -- inf * x -> inf
+   | r1 == infinity && c1 -> sornFromList [u1]
+   | r2 == infinity && c2 -> sornFromList [u2]
+   -- x * y -> z
+   | c1 && c2             -> sornFromList [toUnum (r1*r2)]
+   -- ~x *  y -> [~u..~v]
+   --  x * ~y -> [~u..~v]
+   -- ~x * ~y -> [~u..~v]
+   | otherwise            -> case resSign of
+      Positive -> sornFromList (unumRange lowb highb)
+      Negative -> sornFromList (unumRange (unumNegate highb) (unumNegate lowb))
+      NoSign   -> error ("unumMul: invalid numbers: " ++ show (lowb, highb))
+
+   where
+      (resSign,u1',u2') = case (unumSign u1, unumSign u2) of
+         (Negative,Negative) -> (Positive, unumNegate u1, unumNegate u2)
+         (Negative,Positive) -> (Negative, unumNegate u1, u2)
+         (Positive,Negative) -> (Negative, u1, unumNegate u2)
+         _                   -> (NoSign, u1, u2)
+      (r1,c1) = fromUnum u1
+      (r2,c2) = fromUnum u2
+      minB = fst . fromUnum . unumLowerBound
+      maxB = fst . fromUnum . unumUpperBound
+      lowb  = unumNext (toUnum (minB u1' * minB u2'))
+      highb = unumPrev $ if maxB u1' == infinity
+         then unumInfinity
+         else if maxB u2' == infinity
+            then unumInfinity
+            else toUnum (maxB u1' * maxB u2')
+
+
 -- | Table for addition
 -- TODO: use connected sets (compressed)
-newtype TableAdd u = TableAdd (V.Vector (UnumSet u))
+--newtype TableAdd u = TableAdd (V.Vector (UnumSet u))
 
 -------------------------------------------------
 -- Default numeric systems

@@ -56,6 +56,18 @@ main = do
          ) => UnumSet u -> IO ()
       prints (AnySet ss) = print (fmap (fromUnum @u) (sornElems ss))
 
+   putStrLn "Test addition"
    prints (unumAdd a1 a2)
    prints (unumAdd a1 a3)
    prints (unumAdd a1 a4)
+   prints (unumAdd a5 a5)
+
+   putStrLn "Test multiplication"
+   prints (unumMul a1 a2)
+   prints (unumMul a2 a2)
+   prints (unumMul a3 a3)
+   prints (unumMul a1 a1)
+   prints (unumMul a1 a3)
+   prints (unumMul a1 a6)
+   prints (unumMul a1 a4)
+   prints (unumMul a5 a5)
