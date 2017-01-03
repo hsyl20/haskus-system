@@ -94,13 +94,13 @@ main = do
 
       testKin :: [UnumSet Unum3b] -> [UnumSet Unum3b] -> Bool
       testKin cs@[c1,c2,c3,c4,c5,c6] ss@[s1,s2,s3,s4,s5,s6] =
-         ( (s2 + s3 + s4 + s2 + s3 + s2                    `unumSetMember` toUnum (39701 % 10000))
-         && (all (\(ci,si) -> mulDep si + mulDep ci  `unumSetMember` toUnum 1) (cs `zip` ss))
-         && (s2*c5*s6 - s3*c5*s6 - s4*c5*c6 + c2*c6 +c3*c6 +c4*c6 `unumSetMember` toUnum (4077 % 10000))
-         && (c1*c2*s5 + c1*c3*s5 + c1*c4*s5 + s1*c5        `unumSetMember` toUnum (19115 % 10000))
-         && (s2*s5 + s3*s5 + s4*s5                         `unumSetMember` toUnum (19791 % 10000))
-         && (c1*c2 + c1*c3 + c1*c4 + c1*c2 + c1*c3 + c1*c2 `unumSetMember` toUnum (40616 % 10000))
-         && (s1*c2 + s1*c3 + s1*c4 + s1*c2 + s1*c3 + s1*c2 `unumSetMember` toUnum (17172 % 10000))
+         ( (s2 + s3 + s4 + s2 + s3 + s2                    ∋ toUnum (39701 % 10000))
+         && (all (\(ci,si) -> mulDep si + mulDep ci  ∋ toUnum 1) (cs `zip` ss))
+         && (s2*c5*s6 - s3*c5*s6 - s4*c5*c6 + c2*c6 +c3*c6 +c4*c6 ∋ toUnum (4077 % 10000))
+         && (c1*c2*s5 + c1*c3*s5 + c1*c4*s5 + s1*c5        ∋ toUnum (19115 % 10000))
+         && (s2*s5 + s3*s5 + s4*s5                         ∋ toUnum (19791 % 10000))
+         && (c1*c2 + c1*c3 + c1*c4 + c1*c2 + c1*c3 + c1*c2 ∋ toUnum (40616 % 10000))
+         && (s1*c2 + s1*c3 + s1*c4 + s1*c2 + s1*c3 + s1*c2 ∋ toUnum (17172 % 10000))
          )
 
       vs = fmap constV (unumRange (toUnum (-1)) (toUnum 1))

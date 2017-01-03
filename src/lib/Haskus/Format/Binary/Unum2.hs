@@ -37,6 +37,10 @@ module Haskus.Format.Binary.Unum2
    , unumSetElems
    , unumSetUnions
    , unumSetMember
+   , (∈)
+   , (∋)
+   , (∉)
+   , (∌)
    -- * Set of real numbers
    , SORN (..)
    , SORNSize
@@ -346,6 +350,50 @@ unumSetMember (AnySet su) u = sornMember su u
 
 infix 4 `unumSetMember`
 
+-- | Test element membership
+(∈) ::
+   ( Unum u
+   , Integral (SORNWord u)
+   , FiniteBits (SORNWord u)
+   , Integral (UnumWord u)
+   ) => u -> UnumSet u -> Bool
+(∈) = flip unumSetMember
+
+infix 4 ∈
+
+-- | Test element membership
+(∋) ::
+   ( Unum u
+   , Integral (SORNWord u)
+   , FiniteBits (SORNWord u)
+   , Integral (UnumWord u)
+   ) => UnumSet u -> u -> Bool
+(∋) = unumSetMember
+
+infix 4 ∋
+ 
+-- | Test element membership
+(∉) ::
+   ( Unum u
+   , Integral (SORNWord u)
+   , FiniteBits (SORNWord u)
+   , Integral (UnumWord u)
+   ) => u -> UnumSet u -> Bool
+(∉) u s = not (unumSetMember s u)
+
+infix 4 ∉
+
+-- | Test element membership
+(∌) ::
+   ( Unum u
+   , Integral (SORNWord u)
+   , FiniteBits (SORNWord u)
+   , Integral (UnumWord u)
+   ) => UnumSet u -> u -> Bool
+(∌) s u = not (unumSetMember s u)
+
+infix 4 ∌
+ 
 -------------------------------------------------
 -- SORNs
 
