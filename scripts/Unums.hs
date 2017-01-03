@@ -94,16 +94,16 @@ main = do
 
       testKin :: [UnumSet Unum3b] -> [UnumSet Unum3b] -> Bool
       testKin cs@[c1,c2,c3,c4,c5,c6] ss@[s1,s2,s3,s4,s5,s6] =
-         ( (s2 + s3 + s4 + s2 + s3 + s2                    == constU (39701 % 10000))
-         && (all (\(ci,si) -> mulDep s1 + mulDep ci  == constU 1) (cs `zip` ss))
-         && (s2*c5*s6 - s3*c5*s6 - s4*c5*c6 + c2*c6 +c3*c6 +c4*c6 == constU (4077 % 10000))
-         && (c1*c2*s5 + c1*c3*s5 + c1*c4*s5 + s1*c5        == constU (19115 % 10000))
-         && (s2*s5 + s3*s5 + s4*s5                         == constU (19791 % 10000))
-         && (c1*c2 + c1*c3 + c1*c4 + c1*c2 + c1*c3 + c1*c2 == constU (40616 % 10000))
-         && (s1*c2 + s1*c3 + s1*c4 + s1*c2 + s1*c3 + s1*c2 == constU (17172 % 10000))
+         ( (s2 + s3 + s4 + s2 + s3 + s2                    `unumSetMember` toUnum (39701 % 10000))
+         && (all (\(ci,si) -> mulDep si + mulDep ci  `unumSetMember` toUnum 1) (cs `zip` ss))
+         && (s2*c5*s6 - s3*c5*s6 - s4*c5*c6 + c2*c6 +c3*c6 +c4*c6 `unumSetMember` toUnum (4077 % 10000))
+         && (c1*c2*s5 + c1*c3*s5 + c1*c4*s5 + s1*c5        `unumSetMember` toUnum (19115 % 10000))
+         && (s2*s5 + s3*s5 + s4*s5                         `unumSetMember` toUnum (19791 % 10000))
+         && (c1*c2 + c1*c3 + c1*c4 + c1*c2 + c1*c3 + c1*c2 `unumSetMember` toUnum (40616 % 10000))
+         && (s1*c2 + s1*c3 + s1*c4 + s1*c2 + s1*c3 + s1*c2 `unumSetMember` toUnum (17172 % 10000))
          )
 
-      vs = fmap constV (sornElems (sornFull @ Unum3b))
+      vs = fmap constV (unumRange (toUnum (-1)) (toUnum 1))
 
       vs' = [ ([c1,c2,c3,c4,c5,c6],[s1,s2,s3,s4,s5,s6])
             | c1 <- vs
@@ -120,7 +120,7 @@ main = do
             , s6 <- vs
             ]
 
-   print (filter (uncurry testKin) vs')
+   print (length (filter (uncurry testKin) vs'))
 
 instance Num (UnumSet Unum3b) where
    (*) = unumLiftOpIndep @Unum3b unumMul

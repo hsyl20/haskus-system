@@ -36,6 +36,7 @@ module Haskus.Format.Binary.Unum2
    , UnumSet (..)
    , unumSetElems
    , unumSetUnions
+   , unumSetMember
    -- * Set of real numbers
    , SORN (..)
    , SORNSize
@@ -51,6 +52,7 @@ module Haskus.Format.Binary.Unum2
    , sornUnions
    , sornUnion
    -- * Unum operations
+   , unumRange
    , unumAdd
    , unumSub
    , unumMul
@@ -332,6 +334,17 @@ unumSetUnions ::
 unumSetUnions ss = AnySet (sornUnions (fmap extractSORN ss))
    where
       extractSORN (AnySet su) = su
+
+-- | Test element membership
+unumSetMember ::
+   ( Unum u
+   , Integral (SORNWord u)
+   , FiniteBits (SORNWord u)
+   , Integral (UnumWord u)
+   ) => UnumSet u -> u -> Bool
+unumSetMember (AnySet su) u = sornMember su u
+
+infix 4 `unumSetMember`
 
 -------------------------------------------------
 -- SORNs
