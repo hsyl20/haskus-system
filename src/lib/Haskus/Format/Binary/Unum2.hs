@@ -311,6 +311,9 @@ data UnumSet u
 instance Show (SORN u) => Show (UnumSet u) where
    show (AnySet su) = show su
 
+instance Eq (SORN u) => Eq (UnumSet u) where
+   (==) (AnySet su1) (AnySet su2) = su1 == su2
+
 -- | Elements of the set
 unumSetElems ::
    ( Unum u
@@ -589,6 +592,10 @@ unumMul u1 u2 = AnySet $ if
    -- inf * x -> inf
    | r1 == infinity && c1 -> sornFromList [u1]
    | r2 == infinity && c2 -> sornFromList [u2]
+   -- 0 * x -> 0
+   -- x * 0 -> 0
+   | (r1 == 0 && c1) ||
+     (r2 == 0 && c2)      -> sornFromList [unumZero]
    -- x * y -> z
    | c1 && c2             -> sornFromList [toUnum (r1*r2)]
    -- ~x *  y -> [~u..~v]
@@ -654,6 +661,7 @@ unumLiftOpDep :: forall u.
    ) => (u -> u -> UnumSet u) -> UnumSet u -> UnumSet u
 unumLiftOpDep op xs =
    unumSetUnions [ x `op` x | x <- unumSetElems xs]
+
 
 -------------------------------------------------
 -- Default numeric systems
