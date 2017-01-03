@@ -71,3 +71,7 @@ main = do
    prints (unumMul a1 a6)
    prints (unumMul a1 a4)
    prints (unumMul a5 a5)
+
+   putStrLn "Test division"
+   prints (unumDiv a1 a2)
+   prints (unumDiv a6 a7)

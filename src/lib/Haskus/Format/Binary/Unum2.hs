@@ -47,7 +47,9 @@ module Haskus.Format.Binary.Unum2
    , sornUnion
    -- * Operations
    , unumAdd
+   , unumSub
    , unumMul
+   , unumDiv
    -- * Numeric systems
    , Unum2b (..)
    , Unum3b (..)
@@ -465,11 +467,21 @@ unumAdd u1 u2 = AnySet $ if
       highb = unumPrev (unumAddExact (unumUpperBound u1) (unumUpperBound u2))
 
 
+-- | Unum subtraction
+unumSub :: forall u.
+   ( Unum u
+   , Integral (UnumWord u)
+   , FiniteBits (UnumWord u)
+   , KnownNat (UnumBitCount u)
+   , FiniteBits (SORNWord u)
+   , KnownNat (SORNSize u)
+   ) => u -> u -> UnumSet u
+unumSub u1 u2 = unumAdd u1 (unumNegate u2)
+
 -- | Unum multiplication
 -- TODO: use connected sets (compressed)
 unumMul :: forall u.
    ( Unum u
-   , Show u
    , Integral (UnumWord u)
    , FiniteBits (UnumWord u)
    , KnownNat (UnumBitCount u)
@@ -496,10 +508,11 @@ unumMul u1 u2 = AnySet $ if
    | otherwise            -> case resSign of
       Positive -> sornFromList (unumRange lowb highb)
       Negative -> sornFromList (unumRange (unumNegate highb) (unumNegate lowb))
-      NoSign   -> error ("unumMul: invalid numbers: " ++ show (lowb, highb))
+      NoSign   -> error "unumMul: invalid numbers"
 
    where
       (resSign,u1',u2') = case (unumSign u1, unumSign u2) of
+         (Positive,Positive) -> (Positive, u1, u2)
          (Negative,Negative) -> (Positive, unumNegate u1, unumNegate u2)
          (Negative,Positive) -> (Negative, unumNegate u1, u2)
          (Positive,Negative) -> (Negative, u1, unumNegate u2)
@@ -515,6 +528,17 @@ unumMul u1 u2 = AnySet $ if
             then unumInfinity
             else toUnum (maxB u1' * maxB u2')
 
+-- | Unum division
+unumDiv :: forall u.
+   ( Unum u
+   , Show u
+   , Integral (UnumWord u)
+   , FiniteBits (UnumWord u)
+   , KnownNat (UnumBitCount u)
+   , FiniteBits (SORNWord u)
+   , KnownNat (SORNSize u)
+   ) => u -> u -> UnumSet u
+unumDiv u1 u2 = unumMul u1 (unumReciprocate u2)
 
 -- | Table for addition
 -- TODO: use connected sets (compressed)
