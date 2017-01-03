@@ -32,8 +32,11 @@ module Haskus.Format.Binary.Unum2
    , unumUpperBound
    , Sign (..)
    , unumSign
-   -- * Set of real numbers
+   -- * Unum set
    , UnumSet (..)
+   , unumSetElems
+   , unumSetUnions
+   -- * Set of real numbers
    , SORN (..)
    , SORNSize
    , SORNWord
@@ -46,11 +49,14 @@ module Haskus.Format.Binary.Unum2
    , sornFromList
    , sornUnions
    , sornUnion
-   -- * Operations
+   -- * Unum operations
    , unumAdd
    , unumSub
    , unumMul
    , unumDiv
+   -- * SORN operations
+   , unumLiftOpIndep
+   , unumLiftOpDep
    -- * Numeric systems
    , Unum2b (..)
    , Unum3b (..)
@@ -294,16 +300,37 @@ fromUnum u = (r, unumIsExactNumber u)
          | otherwise        -> Set.elemAt (i-1) (unumPositiveMembers (undefined :: u))
    
 -------------------------------------------------
--- SORNs
+-- Unum set
 
 -- | A set of numbers
 data UnumSet u
    = AnySet (SORN u)
 --   | ConnectedSet (CSORN u) -- TODO: connected sets (compressed)
 
-
 instance Show (SORN u) => Show (UnumSet u) where
    show (AnySet su) = show su
+
+-- | Elements of the set
+unumSetElems ::
+   ( Unum u
+   , Num (UnumWord u)
+   , FiniteBits (UnumWord u)
+   , FiniteBits (SORNWord u)
+   , KnownNat (UnumBitCount u)
+   ) => UnumSet u -> [u]
+unumSetElems (AnySet su) = sornElems su
+
+-- | Union of unum sets
+unumSetUnions ::
+   ( Unum u
+   , FiniteBits (SORNWord u)
+   ) => [UnumSet u] -> UnumSet u
+unumSetUnions ss = AnySet (sornUnions (fmap extractSORN ss))
+   where
+      extractSORN (AnySet su) = su
+
+-------------------------------------------------
+-- SORNs
 
 -- | Set of Real Numbers (SORN)
 newtype SORN u = SORN (SORNWord u)
@@ -542,6 +569,32 @@ unumDiv :: forall u.
    , KnownNat (SORNSize u)
    ) => u -> u -> UnumSet u
 unumDiv u1 u2 = unumMul u1 (unumReciprocate u2)
+
+-- | Lift an independent operation
+unumLiftOpIndep :: forall u.
+   ( Unum u
+   , FiniteBits (SORNWord u)
+   , Num (SORNWord u)
+   , Num (UnumWord u)
+   , FiniteBits (UnumWord u)
+   , KnownNat (UnumBitCount u)
+   ) => (u -> u -> UnumSet u) -> UnumSet u -> UnumSet u -> UnumSet u
+unumLiftOpIndep op xs ys =
+   unumSetUnions [ x `op` y | x <- unumSetElems xs
+                            , y <- unumSetElems ys
+                            ]
+
+-- | Lift a dependent operation
+unumLiftOpDep :: forall u.
+   ( Unum u
+   , FiniteBits (SORNWord u)
+   , Num (SORNWord u)
+   , Num (UnumWord u)
+   , FiniteBits (UnumWord u)
+   , KnownNat (UnumBitCount u)
+   ) => (u -> u -> UnumSet u) -> UnumSet u -> UnumSet u
+unumLiftOpDep op xs =
+   unumSetUnions [ x `op` x | x <- unumSetElems xs]
 
 -------------------------------------------------
 -- Default numeric systems

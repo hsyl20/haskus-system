@@ -75,3 +75,18 @@ main = do
    putStrLn "Test division"
    prints (unumDiv a1 a2)
    prints (unumDiv a6 a7)
+
+   putStrLn "Test lifted operations"
+
+   let
+      addDep   = unumLiftOpDep @Unum3b unumAdd
+      addIndep = unumLiftOpIndep @Unum3b unumAdd
+      subDep   = unumLiftOpDep @Unum3b unumSub
+      subIndep = unumLiftOpIndep @Unum3b unumSub
+      mulDep   = unumLiftOpDep @Unum3b unumMul
+      mulIndep = unumLiftOpIndep @Unum3b unumMul
+      divDep   = unumLiftOpDep @Unum3b unumDiv
+      divIndep = unumLiftOpIndep @Unum3b unumDiv
+
+   print (addIndep (unumMul a1 a6) (unumDiv a5 a7))
+   print (addIndep (unumMul a1 a6) (unumMul a5 a7))
