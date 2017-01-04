@@ -73,6 +73,9 @@ main = do
    print ((unumMul a1 a6) + (unumDiv a5 a7))
    print ((unumMul a1 a6) + (unumMul a5 a7))
 
+   putStrLn "Test reciprocate"
+   print (unumReciprocate (toUnum 0 :: Unum3b))
+   print (unumReciprocate (unumReciprocate (toUnum 0 :: Unum3b)))
 
    putStrLn "Kinematics test"
    let
@@ -107,4 +110,3 @@ main = do
             ]
 
    print (length (filter (uncurry testKin) vs'))
-

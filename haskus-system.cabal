@@ -262,6 +262,7 @@ test-suite tests
       ,  Haskus.Tests.Format.Binary
       ,  Haskus.Tests.Format.Binary.Bits
       ,  Haskus.Tests.Format.Binary.GetPut
+      ,  Haskus.Tests.Format.Binary.Unum
       ,  Haskus.Tests.Format.Binary.Vector
       ,  Haskus.Tests.Utils.HArray
       ,  Haskus.Tests.Utils.Variant

@@ -259,7 +259,7 @@ unumReciprocate :: forall u.
 {-# INLINE unumReciprocate #-}
 unumReciprocate u =
    unumPack
-   <| (unumUnpack u `xor` m + 1)
+   <| unumMask @u ((unumUnpack u `xor` m) + 1)
    where
       s = unumBitCount @u
       m = makeMask (s-1)
