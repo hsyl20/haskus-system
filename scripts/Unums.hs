@@ -5,6 +5,7 @@
 {-# LANGUAGE TypeApplications #-}
 
 import Haskus.Format.Binary.Unum2
+import Haskus.Utils.Maths.Series
 import GHC.Real
 
 main :: IO ()
@@ -77,36 +78,42 @@ main = do
    print (unumReciprocate (toUnum 0 :: Unum3b))
    print (unumReciprocate (unumReciprocate (toUnum 0 :: Unum3b)))
 
-   putStrLn "Kinematics test"
-   let
-      testKin :: [UnumSet Unum3b] -> [UnumSet Unum3b] -> Bool
-      testKin cs@[c1,c2,c3,c4,c5,c6] ss@[s1,s2,s3,s4,s5,s6] = and
-         [ (double s2 + double s3 + s4 + s2               ∋ toUnum (39701 % 10000))
-         , (all (\(ci,si) -> square si + square ci  ∋ toUnum 1) (cs `zip` ss))
-         , ((s2-s3-s4)*c5*s6 + (c2+c3+c4)*c6              ∋ toUnum (4077 % 10000))
-         , (c1*c2*s5 + c1*c3*s5 + c1*c4*s5 + s1*c5        ∋ toUnum (19115 % 10000))
-         , ((s2+s3+s4)*s5                                 ∋ toUnum (19791 % 10000))
-         , (c1*(double c2 + double c3 + c4 + c2)          ∋ toUnum (40616 % 10000))
-         , (s1*(double c2 + double c3 + c4 + c2)          ∋ toUnum (17172 % 10000))
-         ]
-      testKin _ _ = error "Invalid input"
+--   putStrLn "Kinematics test"
+--   let
+--      testKin :: [UnumSet Unum3b] -> [UnumSet Unum3b] -> Bool
+--      testKin cs@[c1,c2,c3,c4,c5,c6] ss@[s1,s2,s3,s4,s5,s6] = and
+--         [ (double s2 + double s3 + s4 + s2               ∋ toUnum (39701 % 10000))
+--         , (all (\(ci,si) -> square si + square ci  ∋ toUnum 1) (cs `zip` ss))
+--         , ((s2-s3-s4)*c5*s6 + (c2+c3+c4)*c6              ∋ toUnum (4077 % 10000))
+--         , (c1*c2*s5 + c1*c3*s5 + c1*c4*s5 + s1*c5        ∋ toUnum (19115 % 10000))
+--         , ((s2+s3+s4)*s5                                 ∋ toUnum (19791 % 10000))
+--         , (c1*(double c2 + double c3 + c4 + c2)          ∋ toUnum (40616 % 10000))
+--         , (s1*(double c2 + double c3 + c4 + c2)          ∋ toUnum (17172 % 10000))
+--         ]
+--      testKin _ _ = error "Invalid input"
+--
+--      --vs = unumSetSubsets (unumSetFromList (unumRange (toUnum (-1)) (toUnum 1)))
+--      vs = unumSetSubsets (unumSetFromList [toUnum (-1), unumPrev (toUnum 0), toUnum 0])
+--
+--      vs' = [ ([c1,c2,c3,c4,c5,c6],[s1,s2,s3,s4,s5,s6])
+--            | c1 <- vs
+--            , c2 <- vs
+--            , c3 <- vs
+--            , c4 <- vs
+--            , c5 <- vs
+--            , c6 <- vs
+--            , s1 <- vs
+--            , s2 <- vs
+--            , s3 <- vs
+--            , s4 <- vs
+--            , s5 <- vs
+--            , s6 <- vs
+--            ]
+--
+   --print (length (filter (uncurry testKin) vs'))
 
-      --vs = unumSetSubsets (unumSetFromList (unumRange (toUnum (-1)) (toUnum 1)))
-      vs = unumSetSubsets (unumSetFromList [toUnum (-1), unumPrev (toUnum 0), toUnum 0])
 
-      vs' = [ ([c1,c2,c3,c4,c5,c6],[s1,s2,s3,s4,s5,s6])
-            | c1 <- vs
-            , c2 <- vs
-            , c3 <- vs
-            , c4 <- vs
-            , c5 <- vs
-            , c6 <- vs
-            , s1 <- vs
-            , s2 <- vs
-            , s3 <- vs
-            , s4 <- vs
-            , s5 <- vs
-            , s6 <- vs
-            ]
+   let x = 32 % 1 :: Rational
 
-   print (length (filter (uncurry testKin) vs'))
+   print (sin (fromRational x :: Double))
+   print (fromRational (sum (take 6 (sinSeries x))) :: Double)

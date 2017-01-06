@@ -746,7 +746,6 @@ unumLiftOpDep :: forall u.
 unumLiftOpDep op xs =
    unumSetUnions [ x `op` x | x <- unumSetElems xs]
 
-
 -------------------------------------------------
 -- Default numeric systems
 
