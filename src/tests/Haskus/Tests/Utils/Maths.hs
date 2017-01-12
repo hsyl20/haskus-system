@@ -8,28 +8,34 @@ where
 import Test.Tasty
 import Test.Tasty.QuickCheck as QC
 
+import Data.Ratio
 import Haskus.Utils.Maths.Series
 
 testsMaths :: TestTree
 testsMaths = testGroup "Maths" $
-   [ testProperty "Series for sin"
-         (testSeries sin sinSeries)
+   [ testProperty "Series for Pi"
+         (converge piShanksSeries pi)
+   , testProperty "Series for sin"
+         (testSeries sin (euler . sinSeries))
    ]
 
+check :: Rational -> Double -> Bool
+check r d = abs (r - toRational d) < epsilon
+   where
+      epsilon  = 1 % 10000
+
+converge :: [Rational] -> Double -> Bool
+converge rs d = go maxIter rs
+   where
+      maxIter = 100
+
+      go :: Integer -> [Rational] -> Bool
+      go 0 _         = False
+      go _ []        = error "Invalid input"
+      go n (x:xs)
+         | check x d = True
+         | otherwise = go (n-1) xs
+         
 
 testSeries :: (Double -> Double) -> (Rational -> [Rational]) -> Rational -> Bool
-testSeries op terms x = go 0 (take maxTerms (terms x))
-   where
-      epsilon  = 1e-5
-      maxTerms = 100
-
-      -- witness value (using native sin, cos, etc.)
-      wit  = op (fromRational x)
-
-      toV :: Rational -> Double
-      toV = fromRational
-
-      go v ts
-         | (abs (toV v-wit)) < epsilon = True
-         | null ts                     = False
-         | otherwise                   = go (v + head ts) (tail ts)
+testSeries op terms x = converge (terms x) (op (fromRational x))

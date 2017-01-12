@@ -16,6 +16,7 @@
 module Haskus.Format.Binary.Unum2
    ( Unum (..)
    , UnumWord
+   , unumExactMembers
    , unumInfinity
    , unumZero
    , unumNegate
@@ -103,25 +104,25 @@ class Eq x => Unum x where
    -- and its reciprocal are included too)
    unumInputMembers :: x -> Set Rational
 
-   -- | All the exact members of the numeric system (including `infinity`)
-   unumExactMembers :: x -> Set Rational
-   unumExactMembers x = Set.unions
-      [ unumPositiveMembers x
-      , unumNegativeMembers x
-      , Set.singleton 0
-      , Set.singleton infinity
-      ]
+-- | All the exact members of the numeric system (including `infinity`)
+unumExactMembers :: Unum x => x -> Set Rational
+unumExactMembers x = Set.unions
+   [ unumPositiveMembers x
+   , unumNegativeMembers x
+   , Set.singleton 0
+   , Set.singleton infinity
+   ]
 
-   -- | Positive members
-   unumPositiveMembers :: x -> Set Rational
-   unumPositiveMembers x = Set.unions
-      [ unumInputMembers x
-      , Set.map rcp (unumInputMembers x)
-      ]
+-- | Positive members
+unumPositiveMembers :: Unum x => x -> Set Rational
+unumPositiveMembers x = Set.unions
+   [ unumInputMembers x
+   , Set.map rcp (unumInputMembers x)
+   ]
 
-   -- | Negative members
-   unumNegativeMembers :: x -> Set Rational
-   unumNegativeMembers = Set.map (0 -) . unumPositiveMembers
+-- | Negative members
+unumNegativeMembers :: Unum x => x -> Set Rational
+unumNegativeMembers = Set.map (0 -) . unumPositiveMembers
 
 
 -- | Mask a Unum Word

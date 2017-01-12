@@ -1,6 +1,8 @@
 module Haskus.Tests.Common
    ( isBijective
    , isEquivalent
+   , isIdempotent
+   , areCommutative
    , ArbitraryByteString (..)
    , ArbitraryByteStringNoNul (..)
    , ArbitraryBuffer (..)
@@ -22,6 +24,14 @@ isBijective f w = w == (f (f w))
 -- | Ensure that two functions return the same thing for the same input
 isEquivalent :: Eq b => (a -> b) -> (a -> b) -> a -> Bool
 isEquivalent f g x = (f x) == (g x)
+
+-- | Check that a function is idempotent
+isIdempotent :: Eq a => (a -> a) -> a -> Bool
+isIdempotent f x = (f x) == f (f x)
+
+-- | Ensure that two functions can commute
+areCommutative :: Eq a => (a -> a) -> (a -> a) -> a -> Bool
+areCommutative f g x = f (g x) == g (f x)
 
 -- | Arbitrary ByteString (50 chars long max)
 newtype ArbitraryByteString
