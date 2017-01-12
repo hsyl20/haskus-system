@@ -8,6 +8,7 @@ module Haskus.Utils.Maths.Series
    , shanks
    , shanks3
    , shanksN
+   , expSeries
    , piSeries
    , piShanksSeries
    , sinSeries
@@ -16,8 +17,10 @@ module Haskus.Utils.Maths.Series
    , cosShanksSeries
    , continuedFraction
    , generalizedContinuedFraction
-   , sineCF
-   , sineBounds
+   , cfBounds
+   , sinCF
+   , expCF
+   , tanCF
    , sinReduce
    , cosReduce
    )
@@ -51,6 +54,12 @@ shanksN n xs = shanksN (n-1) (shanks xs)
 euler :: (Fractional a, Num a) => [a] -> [a]
 euler ys@(x:xs) = x : zipWith (\u v -> (u+v)/2) ys xs
 euler [] = error "Invalid input"
+
+-- | Exponential series
+expSeries :: Rational -> [Rational]
+expSeries x = partialSums (1 : go x 1 2)
+   where
+      go xs fact n = xs / fact : go (x*xs) (fact * n) (n+1)
 
 
 -- | Leibniz formula for Pi
@@ -168,16 +177,28 @@ generalizedContinuedFraction an bn = fmap (\(pi,qi) -> pi / qi) (tail pq)
             pi = ai * pi1 + bi * pi2
             qi = ai * qi1 + bi * qi2
 
+-- | Get the approximed bounds from the convergents of a continued fraction
+cfBounds :: [Rational] -> [(Rational,Rational)]
+cfBounds ~(x:y:zs) = (x,y) : cfBounds zs
+
+
 -- | Convergents of Sine's continued fraction
-sineCF :: Rational -> [Rational]
-sineCF x = generalizedContinuedFraction an bn
+sinCF :: Rational -> [Rational]
+sinCF x = generalizedContinuedFraction an bn
    where
       an = 0 : 1   : [ n*(n+1) - x*x | n <- [2,4..] ]
       bn = x : x*x : [ n*(n+1) * x*x | n <- [2,4..] ]
 
-
--- | Approximate sin(x) with Sine's continued fraction
-sineBounds :: Rational -> [(Rational,Rational)]
-sineBounds = go . sineCF
+-- | Convergents of Exponential's continued fraction
+expCF :: Rational -> [Rational]
+expCF z = generalizedContinuedFraction an bn
    where
-      go ~(x:y:zs) = (x,y):go zs
+      an = 1   : (2 - z) : [ n | n <- [6,10..] ]
+      bn = 2*z : repeat (z*z)
+
+-- | Convergents of Tangent's continued fraction
+tanCF :: Rational -> [Rational]
+tanCF z = generalizedContinuedFraction an bn
+   where
+      an = 0 : [ n | n <- [1,3..] ]
+      bn = z : repeat (-1*z*z)
